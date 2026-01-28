@@ -1,0 +1,87 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loadMore": "Load More",
+    "noResults": "No results found",
+    "error": "An error occurred",
+    "success": "Success",
+    "profile": "Profile"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me",
+    "loginButton": "Sign In",
+    "welcomeBack": "Welcome Back",
+    "enterCredentials": "Enter your credentials to access your account",
+    "invalidCredentials": "Invalid email or password"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "companies": "Companies",
+    "deals": "Deals",
+    "leads": "Leads",
+    "activities": "Activities",
+    "conversations": "Conversations",
+    "reports": "Reports",
+    "pipelines": "Pipelines",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "totalContacts": "Total Contacts",
+    "totalDeals": "Total Deals",
+    "totalLeads": "Total Leads",
+    "openDeals": "Open Deals",
+    "wonDeals": "Won Deals",
+    "revenue": "Revenue"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "addNew": "Add Contact",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "phone": "Phone",
+    "whatsapp": "WhatsApp",
+    "company": "Company",
+    "created": "Contact created successfully",
+    "updated": "Contact updated successfully",
+    "deleted": "Contact deleted",
+    "searchPlaceholder": "Search by name, email, or phone..."
+  },
+  "deals": {
+    "title": "Deals",
+    "addNew": "Add Deal",
+    "value": "Value",
+    "stage": "Stage",
+    "probability": "Win Probability",
+    "expectedClose": "Expected Close Date"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Invalid email address",
+    "phone": "Invalid phone number",
+    "minLength": "Must be at least {{min}} characters"
+  }
+}

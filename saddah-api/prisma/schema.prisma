@@ -1,0 +1,364 @@
+// SADDAH CRM Database Schema
+// Version: 1.0.0
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// TENANT & AUTH
+// ============================================
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  domain    String?  @unique
+  settings  Json     @default("{}")
+  plan      String   @default("trial")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users         User[]
+  contacts      Contact[]
+  companies     Company[]
+  deals         Deal[]
+  leads         Lead[]
+  activities    Activity[]
+  conversations Conversation[]
+  pipelines     Pipeline[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  email        String
+  passwordHash String    @map("password_hash")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  phone        String?
+  avatar       String?
+  role         String    @default("sales_rep")
+  language     String    @default("ar")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  tenant                Tenant         @relation(fields: [tenantId], references: [id])
+  ownedContacts         Contact[]      @relation("ContactOwner")
+  ownedDeals            Deal[]         @relation("DealOwner")
+  ownedLeads            Lead[]         @relation("LeadOwner")
+  activities            Activity[]     @relation("ActivityCreator")
+  assignedConversations Conversation[] @relation("ConversationAssignee")
+  refreshTokens         RefreshToken[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// CRM ENTITIES
+// ============================================
+
+model Contact {
+  id        String  @id @default(uuid())
+  tenantId  String  @map("tenant_id")
+  ownerId   String  @map("owner_id")
+  companyId String? @map("company_id")
+
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  email        String?
+  phone        String?
+  whatsapp     String?
+  title        String?
+  source       String   @default("manual")
+  tags         String[] @default([])
+  customFields Json     @default("{}") @map("custom_fields")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  owner         User           @relation("ContactOwner", fields: [ownerId], references: [id])
+  company       Company?       @relation(fields: [companyId], references: [id])
+  deals         Deal[]
+  activities    Activity[]
+  conversations Conversation[]
+
+  @@index([tenantId])
+  @@index([tenantId, email])
+  @@index([tenantId, phone])
+  @@index([tenantId, ownerId])
+  @@map("contacts")
+}
+
+model Company {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+
+  name         String
+  industry     String?
+  website      String?
+  phone        String?
+  email        String?
+  address      String?
+  city         String?
+  country      String   @default("SA")
+  size         String?
+  tags         String[] @default([])
+  customFields Json     @default("{}") @map("custom_fields")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  contacts Contact[]
+  deals    Deal[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@map("companies")
+}
+
+model Pipeline {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant          @relation(fields: [tenantId], references: [id])
+  stages PipelineStage[]
+  deals  Deal[]
+
+  @@index([tenantId])
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id          String   @id @default(uuid())
+  pipelineId  String   @map("pipeline_id")
+  name        String
+  order       Int
+  probability Int      @default(0)
+  color       String   @default("#6B7280")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  deals    Deal[]
+
+  @@index([pipelineId])
+  @@map("pipeline_stages")
+}
+
+model Deal {
+  id         String  @id @default(uuid())
+  tenantId   String  @map("tenant_id")
+  ownerId    String  @map("owner_id")
+  contactId  String? @map("contact_id")
+  companyId  String? @map("company_id")
+  pipelineId String  @map("pipeline_id")
+  stageId    String  @map("stage_id")
+
+  title             String
+  value             Decimal   @db.Decimal(15, 2)
+  currency          String    @default("SAR")
+  probability       Int       @default(0)
+  expectedCloseDate DateTime? @map("expected_close_date")
+  closedAt          DateTime? @map("closed_at")
+  status            String    @default("open")
+  lostReason        String?   @map("lost_reason")
+  tags              String[]  @default([])
+  customFields      Json      @default("{}") @map("custom_fields")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+  owner      User          @relation("DealOwner", fields: [ownerId], references: [id])
+  contact    Contact?      @relation(fields: [contactId], references: [id])
+  company    Company?      @relation(fields: [companyId], references: [id])
+  pipeline   Pipeline      @relation(fields: [pipelineId], references: [id])
+  stage      PipelineStage @relation(fields: [stageId], references: [id])
+  activities Activity[]
+
+  @@index([tenantId])
+  @@index([tenantId, ownerId])
+  @@index([tenantId, stageId])
+  @@index([tenantId, status])
+  @@map("deals")
+}
+
+// ============================================
+// LEADS
+// ============================================
+
+model Lead {
+  id       String  @id @default(uuid())
+  tenantId String  @map("tenant_id")
+  ownerId  String? @map("owner_id")
+
+  firstName            String    @map("first_name")
+  lastName             String?   @map("last_name")
+  email                String?
+  phone                String?
+  whatsapp             String?
+  source               String    @default("manual")
+  sourceId             String?   @map("source_id")
+  status               String    @default("new")
+  score                Int       @default(0)
+  scoreGrade           String?   @map("score_grade")
+  propertyType         String?   @map("property_type")
+  budget               Decimal?  @db.Decimal(15, 2)
+  timeline             String?
+  location             String?
+  financingNeeded      Boolean?  @map("financing_needed")
+  convertedAt          DateTime? @map("converted_at")
+  convertedToContactId String?   @map("converted_to_contact_id")
+  convertedToDealId    String?   @map("converted_to_deal_id")
+  notes                String?
+  tags                 String[]  @default([])
+  customFields         Json      @default("{}") @map("custom_fields")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  owner        User?              @relation("LeadOwner", fields: [ownerId], references: [id])
+  scoreHistory LeadScoreHistory[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, score])
+  @@index([tenantId, ownerId])
+  @@map("leads")
+}
+
+model LeadScoreHistory {
+  id        String   @id @default(uuid())
+  leadId    String   @map("lead_id")
+  score     Int
+  grade     String
+  factors   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("lead_score_history")
+}
+
+// ============================================
+// ACTIVITIES
+// ============================================
+
+model Activity {
+  id          String  @id @default(uuid())
+  tenantId    String  @map("tenant_id")
+  createdById String  @map("created_by_id")
+  contactId   String? @map("contact_id")
+  dealId      String? @map("deal_id")
+
+  type        String
+  subject     String?
+  description String?
+  dueDate     DateTime? @map("due_date")
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  duration    Int?
+  outcome     String?
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  createdBy User     @relation("ActivityCreator", fields: [createdById], references: [id])
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  deal      Deal?    @relation(fields: [dealId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, contactId])
+  @@index([tenantId, dealId])
+  @@index([tenantId, type])
+  @@index([tenantId, dueDate])
+  @@map("activities")
+}
+
+// ============================================
+// CONVERSATIONS
+// ============================================
+
+model Conversation {
+  id           String  @id @default(uuid())
+  tenantId     String  @map("tenant_id")
+  contactId    String? @map("contact_id")
+  assignedToId String? @map("assigned_to_id")
+
+  channel           String
+  channelId         String    @map("channel_id")
+  status            String    @default("bot")
+  qualificationData Json      @default("{}") @map("qualification_data")
+  lastMessageAt     DateTime? @map("last_message_at")
+  closedAt          DateTime? @map("closed_at")
+  closedReason      String?   @map("closed_reason")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  contact    Contact?  @relation(fields: [contactId], references: [id])
+  assignedTo User?     @relation("ConversationAssignee", fields: [assignedToId], references: [id])
+  messages   Message[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, channelId])
+  @@index([tenantId, assignedToId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String @id @default(uuid())
+  conversationId String @map("conversation_id")
+
+  direction     String
+  sender        String
+  type          String   @default("text")
+  content       String
+  mediaUrl      String?  @map("media_url")
+  transcription String?
+  duration      Int?
+  externalId    String?  @map("external_id")
+  status        String   @default("sent")
+  errorMessage  String?  @map("error_message")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
