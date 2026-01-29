@@ -1,9 +1,11 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/authStore';
+import { env } from '@/config';
 
 // Create axios instance
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: env.apiBaseUrl,
+  timeout: env.apiTimeout,
   headers: {
     'Content-Type': 'application/json',
   },

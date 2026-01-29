@@ -37,6 +37,14 @@ export class NotificationsController {
     );
   }
 
+  @Get('unread-count')
+  @ApiOperation({ summary: 'جلب عدد الإشعارات غير المقروءة' })
+  @ApiResponse({ status: 200, description: 'عدد الإشعارات غير المقروءة' })
+  async getUnreadCount(@CurrentUser('sub') userId: string) {
+    const count = await this.notificationsService.getUnreadCount(userId);
+    return { unreadCount: count };
+  }
+
   @Post(':id/read')
   @ApiOperation({ summary: 'تحديد إشعار كمقروء' })
   @ApiResponse({ status: 200, description: 'تم تحديث الإشعار' })

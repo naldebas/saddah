@@ -26,6 +26,11 @@ export const notificationsApi = {
     return response.data;
   },
 
+  getUnreadCount: async (): Promise<{ unreadCount: number }> => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data;
+  },
+
   markAsRead: async (notificationId: string): Promise<Notification> => {
     const response = await api.post(`/notifications/${notificationId}/read`);
     return response.data;

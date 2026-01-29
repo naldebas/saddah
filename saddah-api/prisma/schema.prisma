@@ -59,6 +59,7 @@ model User {
   activities            Activity[]     @relation("ActivityCreator")
   assignedConversations Conversation[] @relation("ConversationAssignee")
   refreshTokens         RefreshToken[]
+  notifications         Notification[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -361,4 +362,30 @@ model Message {
   @@index([conversationId])
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id       String @id @default(uuid())
+  tenantId String @map("tenant_id")
+  userId   String @map("user_id")
+
+  type      String
+  title     String
+  message   String
+  data      Json     @default("{}")
+  isRead    Boolean  @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([tenantId])
+  @@map("notifications")
 }

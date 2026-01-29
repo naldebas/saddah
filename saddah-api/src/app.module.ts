@@ -18,6 +18,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SearchModule } from './modules/search/search.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ConversationsModule } from './modules/conversations/conversations.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     SearchModule,
     SettingsModule,
     ReportsModule,
+    ConversationsModule,
   ],
   providers: [
     {

@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Plus, Phone, MapPin, TrendingUp } from 'lucide-react';
 import { Button, Card, Spinner } from '@/components/ui';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { leadsApi, Lead, LeadStatistics } from '@/services/leads.api';
+import { useLeads, useLeadStatistics, useCreateLead } from '@/hooks';
+import type { Lead } from '@/services/leads.api';
 import { CreateLeadModal } from './CreateLeadModal';
 import { LeadDetailModal } from './LeadDetailModal';
 
@@ -18,97 +20,56 @@ const statusColors: Record<string, 'default' | 'primary' | 'success' | 'warning'
   lost: 'error',
 };
 
-const statusLabels: Record<string, string> = {
-  new: 'جديد',
-  contacted: 'تم التواصل',
-  qualified: 'مؤهل',
-  unqualified: 'غير مؤهل',
-  converted: 'تم التحويل',
-  lost: 'مفقود',
-};
-
-const sourceLabels: Record<string, string> = {
-  manual: 'يدوي',
-  whatsapp_bot: 'واتساب بوت',
-  voice_bot: 'بوت صوتي',
-  web_form: 'نموذج ويب',
-  referral: 'إحالة',
-  linkedin: 'لينكدإن',
-  facebook: 'فيسبوك',
-  google_ads: 'إعلانات جوجل',
-};
-
-const propertyLabels: Record<string, string> = {
-  villa: 'فيلا',
-  apartment: 'شقة',
-  land: 'أرض',
-  commercial: 'تجاري',
-  office: 'مكتب',
-  warehouse: 'مستودع',
-};
-
 export function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [statistics, setStatistics] = useState<LeadStatistics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const { t } = useTranslation();
+
+  // Filter state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
   const [propertyTypeFilter, setPropertyTypeFilter] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  const fetchLeads = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await leadsApi.getAll({
-        page: currentPage,
-        limit: 20,
-        search: search || undefined,
-        status: statusFilter || undefined,
-        source: sourceFilter || undefined,
-        propertyType: propertyTypeFilter || undefined,
-        sortBy,
-        sortOrder,
-      });
-      setLeads(response.data);
-      setTotalPages(response.meta.totalPages);
-      setTotalItems(response.meta.total);
-    } catch (error) {
-      console.error('Error fetching leads:', error);
-      toast.error('فشل في تحميل العملاء المحتملين');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentPage, search, statusFilter, sourceFilter, propertyTypeFilter, sortBy, sortOrder]);
+  // Build query params - memoized to prevent unnecessary re-renders
+  const queryParams = useMemo(() => ({
+    page: currentPage,
+    limit: 20,
+    search: search || undefined,
+    status: statusFilter || undefined,
+    source: sourceFilter || undefined,
+    propertyType: propertyTypeFilter || undefined,
+    sortBy,
+    sortOrder,
+  }), [currentPage, search, statusFilter, sourceFilter, propertyTypeFilter, sortBy, sortOrder]);
 
-  const fetchStatistics = useCallback(async () => {
-    setIsStatsLoading(true);
-    try {
-      const stats = await leadsApi.getStatistics();
-      setStatistics(stats);
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-      toast.error('فشل في تحميل الإحصائيات');
-    } finally {
-      setIsStatsLoading(false);
-    }
-  }, []);
+  // React Query hooks - automatic caching, loading states, and refetching
+  const {
+    data: leadsData,
+    isLoading,
+    error: leadsError
+  } = useLeads(queryParams);
 
-  useEffect(() => {
-    fetchLeads();
-  }, [fetchLeads]);
+  const {
+    data: statistics,
+    isLoading: isStatsLoading
+  } = useLeadStatistics();
 
-  useEffect(() => {
-    fetchStatistics();
-  }, [fetchStatistics]);
+  // Extract data from response
+  const leads = leadsData?.data ?? [];
+  const totalPages = leadsData?.meta.totalPages ?? 1;
+  const totalItems = leadsData?.meta.total ?? 0;
+
+  // Show error toast if fetch failed
+  if (leadsError) {
+    toast.error(t('leads.loadFailed'));
+  }
 
   const handleSort = (column: string, direction: 'asc' | 'desc') => {
     setSortBy(column);
@@ -117,9 +78,8 @@ export function LeadsPage() {
 
   const handleCreateSuccess = () => {
     setIsCreateModalOpen(false);
-    fetchLeads();
-    fetchStatistics();
-    toast.success('تم إضافة العميل المحتمل بنجاح');
+    // No need to manually refetch - React Query handles cache invalidation
+    toast.success(t('leads.created'));
   };
 
   const handleRowClick = (lead: Lead) => {
@@ -128,14 +88,14 @@ export function LeadsPage() {
   };
 
   const handleLeadUpdated = () => {
-    fetchLeads();
-    fetchStatistics();
+    // React Query automatically refetches when mutations invalidate the cache
+    // This callback can be used for additional UI updates if needed
   };
 
   const columns: Column<Lead>[] = [
     {
       key: 'name',
-      header: 'الاسم',
+      header: t('common.name'),
       sortable: true,
       cell: (lead: Lead) => (
         <div>
@@ -153,37 +113,37 @@ export function LeadsPage() {
     },
     {
       key: 'source',
-      header: 'المصدر',
+      header: t('leads.source'),
       sortable: true,
       cell: (lead: Lead) => (
         <span className="text-sm text-gray-600">
-          {sourceLabels[lead.source] || lead.source}
+          {t(`leads.sources.${lead.source}`, { defaultValue: lead.source })}
         </span>
       ),
     },
     {
       key: 'propertyType',
-      header: 'نوع العقار',
+      header: t('leads.propertyType'),
       sortable: true,
       cell: (lead: Lead) => (
         <span className="text-sm text-gray-600">
-          {lead.propertyType ? propertyLabels[lead.propertyType] || lead.propertyType : '-'}
+          {lead.propertyType ? t(`leads.propertyTypes.${lead.propertyType}`, { defaultValue: lead.propertyType }) : '-'}
         </span>
       ),
     },
     {
       key: 'budget',
-      header: 'الميزانية',
+      header: t('leads.budget'),
       sortable: true,
       cell: (lead: Lead) => (
         <span className="text-sm text-gray-600" dir="ltr">
-          {lead.budget ? `${lead.budget.toLocaleString()} ر.س` : '-'}
+          {lead.budget ? `${lead.budget.toLocaleString()} ${t('common.currency')}` : '-'}
         </span>
       ),
     },
     {
       key: 'location',
-      header: 'الموقع',
+      header: t('leads.location'),
       cell: (lead: Lead) => (
         <span className="text-sm text-gray-600 flex items-center gap-1">
           {lead.location && <MapPin className="w-3 h-3" />}
@@ -193,7 +153,7 @@ export function LeadsPage() {
     },
     {
       key: 'score',
-      header: 'التقييم',
+      header: t('leads.score'),
       sortable: true,
       cell: (lead: Lead) => (
         <div className="flex items-center gap-2">
@@ -224,17 +184,17 @@ export function LeadsPage() {
     },
     {
       key: 'status',
-      header: 'الحالة',
+      header: t('leads.status'),
       sortable: true,
       cell: (lead: Lead) => (
         <Badge variant={statusColors[lead.status] || 'default'}>
-          {statusLabels[lead.status] || lead.status}
+          {t(`leads.statuses.${lead.status}`, { defaultValue: lead.status })}
         </Badge>
       ),
     },
     {
       key: 'owner',
-      header: 'المسؤول',
+      header: t('leads.owner'),
       cell: (lead: Lead) => (
         <span className="text-sm text-gray-600">
           {lead.owner ? `${lead.owner.firstName} ${lead.owner.lastName}` : '-'}
@@ -248,12 +208,12 @@ export function LeadsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">العملاء المحتملين</h1>
-          <p className="text-gray-600 mt-1">إدارة ومتابعة العملاء المحتملين</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('leads.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('leads.subtitle')}</p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="w-4 h-4 ml-2" />
-          إضافة عميل محتمل
+          {t('leads.addNew')}
         </Button>
       </div>
 
@@ -274,7 +234,7 @@ export function LeadsPage() {
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">إجمالي العملاء</p>
+                <p className="text-sm text-gray-600">{t('leads.totalLeads')}</p>
                 <p className="text-2xl font-bold text-gray-900">{statistics.total}</p>
               </div>
               <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
@@ -285,29 +245,29 @@ export function LeadsPage() {
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">جدد</p>
+                <p className="text-sm text-gray-600">{t('leads.newLeads')}</p>
                 <p className="text-2xl font-bold text-blue-600">{statistics.byStatus.new}</p>
               </div>
-              <Badge variant="primary">جديد</Badge>
+              <Badge variant="primary">{t('leads.statuses.new')}</Badge>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">مؤهلين</p>
+                <p className="text-sm text-gray-600">{t('leads.qualifiedLeads')}</p>
                 <p className="text-2xl font-bold text-green-600">{statistics.byStatus.qualified}</p>
               </div>
-              <Badge variant="success">مؤهل</Badge>
+              <Badge variant="success">{t('leads.statuses.qualified')}</Badge>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">معدل التحويل</p>
+                <p className="text-sm text-gray-600">{t('dashboard.conversionRate')}</p>
                 <p className="text-2xl font-bold text-primary-600">{statistics.conversionRate}%</p>
               </div>
               <div className="text-sm text-gray-500">
-                متوسط التقييم: {statistics.averageScore}
+                {t('leads.avgScore')}: {statistics.averageScore}
               </div>
             </div>
           </Card>
@@ -318,53 +278,53 @@ export function LeadsPage() {
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select
-            label="الحالة"
+            label={t('leads.status')}
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
           >
-            <option value="">جميع الحالات</option>
-            <option value="new">جديد</option>
-            <option value="contacted">تم التواصل</option>
-            <option value="qualified">مؤهل</option>
-            <option value="unqualified">غير مؤهل</option>
-            <option value="converted">تم التحويل</option>
-            <option value="lost">مفقود</option>
+            <option value="">{t('leads.allStatuses')}</option>
+            <option value="new">{t('leads.statuses.new')}</option>
+            <option value="contacted">{t('leads.statuses.contacted')}</option>
+            <option value="qualified">{t('leads.statuses.qualified')}</option>
+            <option value="unqualified">{t('leads.statuses.unqualified')}</option>
+            <option value="converted">{t('leads.statuses.converted')}</option>
+            <option value="lost">{t('leads.statuses.lost')}</option>
           </Select>
           <Select
-            label="المصدر"
+            label={t('leads.source')}
             value={sourceFilter}
             onChange={(e) => {
               setSourceFilter(e.target.value);
               setCurrentPage(1);
             }}
           >
-            <option value="">جميع المصادر</option>
-            <option value="manual">يدوي</option>
-            <option value="whatsapp_bot">واتساب بوت</option>
-            <option value="voice_bot">بوت صوتي</option>
-            <option value="web_form">نموذج ويب</option>
-            <option value="referral">إحالة</option>
-            <option value="facebook">فيسبوك</option>
-            <option value="google_ads">إعلانات جوجل</option>
+            <option value="">{t('leads.allSources')}</option>
+            <option value="manual">{t('leads.sources.manual')}</option>
+            <option value="whatsapp_bot">{t('leads.sources.whatsapp_bot')}</option>
+            <option value="voice_bot">{t('leads.sources.voice_bot')}</option>
+            <option value="web_form">{t('leads.sources.web_form')}</option>
+            <option value="referral">{t('leads.sources.referral')}</option>
+            <option value="facebook">{t('leads.sources.facebook')}</option>
+            <option value="google_ads">{t('leads.sources.google_ads')}</option>
           </Select>
           <Select
-            label="نوع العقار"
+            label={t('leads.propertyType')}
             value={propertyTypeFilter}
             onChange={(e) => {
               setPropertyTypeFilter(e.target.value);
               setCurrentPage(1);
             }}
           >
-            <option value="">جميع الأنواع</option>
-            <option value="villa">فيلا</option>
-            <option value="apartment">شقة</option>
-            <option value="land">أرض</option>
-            <option value="commercial">تجاري</option>
-            <option value="office">مكتب</option>
-            <option value="warehouse">مستودع</option>
+            <option value="">{t('leads.allPropertyTypes')}</option>
+            <option value="villa">{t('leads.propertyTypes.villa')}</option>
+            <option value="apartment">{t('leads.propertyTypes.apartment')}</option>
+            <option value="land">{t('leads.propertyTypes.land')}</option>
+            <option value="commercial">{t('leads.propertyTypes.commercial')}</option>
+            <option value="office">{t('leads.propertyTypes.office')}</option>
+            <option value="warehouse">{t('leads.propertyTypes.warehouse')}</option>
           </Select>
         </div>
       </Card>
@@ -390,8 +350,8 @@ export function LeadsPage() {
             setSearch(value);
             setCurrentPage(1);
           }}
-          searchPlaceholder="بحث عن عميل محتمل..."
-          emptyMessage="لا يوجد عملاء محتملين"
+          searchPlaceholder={t('leads.searchPlaceholder')}
+          emptyMessage={t('leads.noLeads')}
           onRowClick={handleRowClick}
         />
       )}

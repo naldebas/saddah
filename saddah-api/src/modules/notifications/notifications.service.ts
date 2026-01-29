@@ -1,105 +1,205 @@
 // src/modules/notifications/notifications.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-
-export interface Notification {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  message: string;
-  data?: Record<string, unknown>;
-  isRead: boolean;
-  createdAt: Date;
-}
+import { Notification, Prisma } from '@prisma/client';
 
 export interface CreateNotificationDto {
+  tenantId: string;
   userId: string;
   type: string;
   title: string;
   message: string;
   data?: Record<string, unknown>;
+}
+
+export interface NotificationResponse {
+  notifications: Notification[];
+  total: number;
+  unreadCount: number;
 }
 
 @Injectable()
 export class NotificationsService {
-  // In-memory storage for notifications (in production, use a database table)
-  private notifications: Notification[] = [];
-
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Create a new notification
+   */
   async create(dto: CreateNotificationDto): Promise<Notification> {
-    const notification: Notification = {
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: dto.userId,
-      type: dto.type,
-      title: dto.title,
-      message: dto.message,
-      data: dto.data,
-      isRead: false,
-      createdAt: new Date(),
-    };
+    const notification = await this.prisma.notification.create({
+      data: {
+        tenantId: dto.tenantId,
+        userId: dto.userId,
+        type: dto.type,
+        title: dto.title,
+        message: dto.message,
+        data: dto.data || {},
+      },
+    });
 
-    this.notifications.unshift(notification);
-
-    // Keep only last 100 notifications per user
-    const userNotifications = this.notifications.filter(n => n.userId === dto.userId);
-    if (userNotifications.length > 100) {
-      const toRemove = userNotifications.slice(100);
-      this.notifications = this.notifications.filter(n => !toRemove.includes(n));
-    }
+    // Clean up old notifications - keep only last 100 per user
+    await this.cleanupOldNotifications(dto.userId);
 
     return notification;
   }
 
-  async findAllForUser(userId: string, limit = 20, offset = 0): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
-    const userNotifications = this.notifications.filter(n => n.userId === userId);
-    const unreadCount = userNotifications.filter(n => !n.isRead).length;
+  /**
+   * Find all notifications for a user with pagination
+   */
+  async findAllForUser(
+    userId: string,
+    limit = 20,
+    offset = 0,
+  ): Promise<NotificationResponse> {
+    const [notifications, total, unreadCount] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.notification.count({
+        where: { userId },
+      }),
+      this.prisma.notification.count({
+        where: { userId, isRead: false },
+      }),
+    ]);
 
     return {
-      notifications: userNotifications.slice(offset, offset + limit),
-      total: userNotifications.length,
+      notifications,
+      total,
       unreadCount,
     };
   }
 
-  async markAsRead(userId: string, notificationId: string): Promise<Notification | null> {
-    const notification = this.notifications.find(n => n.id === notificationId && n.userId === userId);
-    if (notification) {
-      notification.isRead = true;
-    }
-    return notification || null;
-  }
-
-  async markAllAsRead(userId: string): Promise<{ count: number }> {
-    let count = 0;
-    this.notifications.forEach(n => {
-      if (n.userId === userId && !n.isRead) {
-        n.isRead = true;
-        count++;
-      }
+  /**
+   * Get unread notification count for a user
+   */
+  async getUnreadCount(userId: string): Promise<number> {
+    return this.prisma.notification.count({
+      where: { userId, isRead: false },
     });
-    return { count };
   }
 
-  async delete(userId: string, notificationId: string): Promise<boolean> {
-    const index = this.notifications.findIndex(n => n.id === notificationId && n.userId === userId);
-    if (index > -1) {
-      this.notifications.splice(index, 1);
-      return true;
+  /**
+   * Mark a single notification as read
+   */
+  async markAsRead(userId: string, notificationId: string): Promise<Notification | null> {
+    try {
+      const notification = await this.prisma.notification.update({
+        where: {
+          id: notificationId,
+          userId, // Ensure user owns this notification
+        },
+        data: {
+          isRead: true,
+          readAt: new Date(),
+        },
+      });
+      return notification;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return null;
+      }
+      throw error;
     }
-    return false;
   }
 
+  /**
+   * Mark all notifications as read for a user
+   */
+  async markAllAsRead(userId: string): Promise<{ count: number }> {
+    const result = await this.prisma.notification.updateMany({
+      where: {
+        userId,
+        isRead: false,
+      },
+      data: {
+        isRead: true,
+        readAt: new Date(),
+      },
+    });
+
+    return { count: result.count };
+  }
+
+  /**
+   * Delete a single notification
+   */
+  async delete(userId: string, notificationId: string): Promise<boolean> {
+    try {
+      await this.prisma.notification.delete({
+        where: {
+          id: notificationId,
+          userId, // Ensure user owns this notification
+        },
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Delete all notifications for a user
+   */
   async clearAll(userId: string): Promise<{ count: number }> {
-    const beforeCount = this.notifications.length;
-    this.notifications = this.notifications.filter(n => n.userId !== userId);
-    return { count: beforeCount - this.notifications.length };
+    const result = await this.prisma.notification.deleteMany({
+      where: { userId },
+    });
+
+    return { count: result.count };
   }
 
-  // Helper methods for creating specific notification types
-  async notifyNewLead(userId: string, leadName: string, source: string): Promise<Notification> {
+  /**
+   * Clean up old notifications - keep only the most recent 100 per user
+   */
+  private async cleanupOldNotifications(userId: string): Promise<void> {
+    const count = await this.prisma.notification.count({
+      where: { userId },
+    });
+
+    if (count > 100) {
+      // Get the ID of the 100th notification
+      const notifications = await this.prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip: 100,
+        take: 1,
+        select: { createdAt: true },
+      });
+
+      if (notifications.length > 0) {
+        // Delete all notifications older than the 100th
+        await this.prisma.notification.deleteMany({
+          where: {
+            userId,
+            createdAt: { lt: notifications[0].createdAt },
+          },
+        });
+      }
+    }
+  }
+
+  // ============================================
+  // HELPER METHODS FOR SPECIFIC NOTIFICATION TYPES
+  // ============================================
+
+  /**
+   * Notify user about a new lead
+   */
+  async notifyNewLead(
+    tenantId: string,
+    userId: string,
+    leadName: string,
+    source: string,
+  ): Promise<Notification> {
     return this.create({
+      tenantId,
       userId,
       type: 'new_lead',
       title: 'عميل محتمل جديد',
@@ -108,43 +208,169 @@ export class NotificationsService {
     });
   }
 
-  async notifyDealStageChange(userId: string, dealTitle: string, newStage: string): Promise<Notification> {
+  /**
+   * Notify user about a deal stage change
+   */
+  async notifyDealStageChange(
+    tenantId: string,
+    userId: string,
+    dealTitle: string,
+    newStage: string,
+    dealId?: string,
+  ): Promise<Notification> {
     return this.create({
+      tenantId,
       userId,
       type: 'deal_stage_change',
       title: 'تغيير مرحلة الصفقة',
       message: `تم نقل الصفقة "${dealTitle}" إلى مرحلة ${newStage}`,
-      data: { dealTitle, newStage },
+      data: { dealTitle, newStage, dealId },
     });
   }
 
-  async notifyActivityDue(userId: string, activitySubject: string, dueDate: Date): Promise<Notification> {
+  /**
+   * Notify user about an upcoming activity
+   */
+  async notifyActivityDue(
+    tenantId: string,
+    userId: string,
+    activitySubject: string,
+    dueDate: Date,
+    activityId?: string,
+  ): Promise<Notification> {
     return this.create({
+      tenantId,
       userId,
       type: 'activity_due',
       title: 'موعد نشاط قادم',
       message: `النشاط "${activitySubject}" مستحق في ${dueDate.toLocaleDateString('ar-SA')}`,
-      data: { activitySubject, dueDate: dueDate.toISOString() },
+      data: { activitySubject, dueDate: dueDate.toISOString(), activityId },
     });
   }
 
-  async notifyNewMessage(userId: string, contactName: string): Promise<Notification> {
+  /**
+   * Notify user about a new message
+   */
+  async notifyNewMessage(
+    tenantId: string,
+    userId: string,
+    contactName: string,
+    conversationId?: string,
+  ): Promise<Notification> {
     return this.create({
+      tenantId,
       userId,
       type: 'new_message',
       title: 'رسالة جديدة',
       message: `لديك رسالة جديدة من ${contactName}`,
-      data: { contactName },
+      data: { contactName, conversationId },
     });
   }
 
-  async notifyDealWon(userId: string, dealTitle: string, value: number): Promise<Notification> {
+  /**
+   * Notify user about a won deal
+   */
+  async notifyDealWon(
+    tenantId: string,
+    userId: string,
+    dealTitle: string,
+    value: number,
+    dealId?: string,
+  ): Promise<Notification> {
     return this.create({
+      tenantId,
       userId,
       type: 'deal_won',
       title: 'تم إغلاق صفقة بنجاح! 🎉',
       message: `تهانينا! تم إغلاق الصفقة "${dealTitle}" بقيمة ${value.toLocaleString('ar-SA')} ر.س`,
-      data: { dealTitle, value },
+      data: { dealTitle, value, dealId },
     });
+  }
+
+  /**
+   * Notify user about a lost deal
+   */
+  async notifyDealLost(
+    tenantId: string,
+    userId: string,
+    dealTitle: string,
+    reason?: string,
+    dealId?: string,
+  ): Promise<Notification> {
+    return this.create({
+      tenantId,
+      userId,
+      type: 'deal_lost',
+      title: 'صفقة خاسرة',
+      message: `للأسف، تم إغلاق الصفقة "${dealTitle}" كخاسرة${reason ? `: ${reason}` : ''}`,
+      data: { dealTitle, reason, dealId },
+    });
+  }
+
+  /**
+   * Notify user about being assigned to a contact
+   */
+  async notifyContactAssigned(
+    tenantId: string,
+    userId: string,
+    contactName: string,
+    contactId?: string,
+  ): Promise<Notification> {
+    return this.create({
+      tenantId,
+      userId,
+      type: 'contact_assigned',
+      title: 'تم تعيين جهة اتصال',
+      message: `تم تعيينك كمسؤول عن جهة الاتصال: ${contactName}`,
+      data: { contactName, contactId },
+    });
+  }
+
+  /**
+   * Notify user about lead conversion
+   */
+  async notifyLeadConverted(
+    tenantId: string,
+    userId: string,
+    leadName: string,
+    leadId?: string,
+    contactId?: string,
+    dealId?: string,
+  ): Promise<Notification> {
+    return this.create({
+      tenantId,
+      userId,
+      type: 'lead_converted',
+      title: 'تم تحويل عميل محتمل',
+      message: `تم تحويل العميل المحتمل "${leadName}" إلى جهة اتصال`,
+      data: { leadName, leadId, contactId, dealId },
+    });
+  }
+
+  /**
+   * Bulk notify multiple users
+   */
+  async notifyMultipleUsers(
+    tenantId: string,
+    userIds: string[],
+    type: string,
+    title: string,
+    message: string,
+    data?: Record<string, unknown>,
+  ): Promise<number> {
+    const notifications = userIds.map((userId) => ({
+      tenantId,
+      userId,
+      type,
+      title,
+      message,
+      data: data || {},
+    }));
+
+    const result = await this.prisma.notification.createMany({
+      data: notifications,
+    });
+
+    return result.count;
   }
 }
