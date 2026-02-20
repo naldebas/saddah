@@ -11,12 +11,12 @@ export enum UserRole {
 
 export class CreateUserDto {
   @ApiProperty({ example: 'ahmed@example.com' })
-  @IsEmail()
+  @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
   email: string;
 
   @ApiProperty({ example: 'Password@123' })
   @IsString()
-  @MinLength(8)
+  @MinLength(8, { message: 'يجب أن تكون كلمة المرور 8 أحرف على الأقل' })
   password: string;
 
   @ApiProperty({ example: 'أحمد' })

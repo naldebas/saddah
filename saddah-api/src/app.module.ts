@@ -19,6 +19,7 @@ import { SearchModule } from './modules/search/search.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
     SettingsModule,
     ReportsModule,
     ConversationsModule,
+    AiModule,
   ],
   providers: [
     {

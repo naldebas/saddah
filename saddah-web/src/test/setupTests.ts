@@ -1,66 +1,29 @@
-// src/test/setupTests.ts
+/**
+ * Vitest Setup File
+ * SADDAH CRM Frontend Tests
+ */
+
 import '@testing-library/jest-dom';
-import { cleanup } from '@testing-library/react';
-import { afterEach, beforeAll, vi } from 'vitest';
-
-// Cleanup after each test
-afterEach(() => {
-  cleanup();
-});
-
-// Mock window.matchMedia
-beforeAll(() => {
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: vi.fn().mockImplementation((query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-});
-
-// Mock IntersectionObserver
-beforeAll(() => {
-  const mockIntersectionObserver = vi.fn();
-  mockIntersectionObserver.mockReturnValue({
-    observe: () => null,
-    unobserve: () => null,
-    disconnect: () => null,
-  });
-  window.IntersectionObserver = mockIntersectionObserver;
-});
-
-// Mock ResizeObserver
-beforeAll(() => {
-  const mockResizeObserver = vi.fn();
-  mockResizeObserver.mockReturnValue({
-    observe: () => null,
-    unobserve: () => null,
-    disconnect: () => null,
-  });
-  window.ResizeObserver = mockResizeObserver;
-});
+import { vi, beforeEach, afterEach } from 'vitest';
 
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value.toString();
-    },
-    removeItem: (key: string) => {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
       delete store[key];
-    },
-    clear: () => {
+    }),
+    clear: vi.fn(() => {
       store = {};
+    }),
+    get length() {
+      return Object.keys(store).length;
     },
+    key: vi.fn((index: number) => Object.keys(store)[index] || null),
   };
 })();
 
@@ -68,40 +31,59 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
-// Mock i18next
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, defaultValue?: string) => defaultValue || key,
-    i18n: {
-      language: 'ar',
-      changeLanguage: vi.fn(),
-    },
-  }),
-  Trans: ({ children }: { children: React.ReactNode }) => children,
-  initReactI18next: {
-    type: '3rdParty',
-    init: () => {},
-  },
-}));
+// Mock window.location
+const locationMock = {
+  href: '',
+  origin: 'http://localhost:3000',
+  pathname: '/',
+  search: '',
+  hash: '',
+  assign: vi.fn(),
+  reload: vi.fn(),
+  replace: vi.fn(),
+};
 
-// Mock react-router-dom
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-    useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
-    useParams: () => ({}),
-  };
+Object.defineProperty(window, 'location', {
+  value: locationMock,
+  writable: true,
 });
 
-// Mock sonner toast
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Toaster: () => null,
+// Reset mocks between tests
+beforeEach(() => {
+  vi.clearAllMocks();
+  localStorageMock.clear();
+  locationMock.href = '';
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+// Mock matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock ResizeObserver
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Mock IntersectionObserver
+global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
 }));

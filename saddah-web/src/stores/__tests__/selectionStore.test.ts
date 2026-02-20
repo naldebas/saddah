@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { useSelectionStore, useEntitySelection } from '../selectionStore';
 
 describe('selectionStore', () => {
@@ -149,18 +150,17 @@ describe('useEntitySelection', () => {
   });
 
   it('provides entity-specific selection interface', () => {
-    // Note: This is testing the shape of the returned object
-    // Full integration would need React Testing Library with hooks
-    const selection = useEntitySelection('contacts');
-    expect(selection).toHaveProperty('selectedIds');
-    expect(selection).toHaveProperty('selectionCount');
-    expect(selection).toHaveProperty('hasSelection');
-    expect(selection).toHaveProperty('isSelected');
-    expect(selection).toHaveProperty('select');
-    expect(selection).toHaveProperty('deselect');
-    expect(selection).toHaveProperty('toggle');
-    expect(selection).toHaveProperty('selectMultiple');
-    expect(selection).toHaveProperty('selectAll');
-    expect(selection).toHaveProperty('deselectAll');
+    const { result } = renderHook(() => useEntitySelection('contacts'));
+
+    expect(result.current).toHaveProperty('selectedIds');
+    expect(result.current).toHaveProperty('selectionCount');
+    expect(result.current).toHaveProperty('hasSelection');
+    expect(result.current).toHaveProperty('isSelected');
+    expect(result.current).toHaveProperty('select');
+    expect(result.current).toHaveProperty('deselect');
+    expect(result.current).toHaveProperty('toggle');
+    expect(result.current).toHaveProperty('selectMultiple');
+    expect(result.current).toHaveProperty('selectAll');
+    expect(result.current).toHaveProperty('deselectAll');
   });
 });

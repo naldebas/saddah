@@ -23,7 +23,7 @@ export class CreateCompanyDto {
   industry?: string;
 
   @ApiPropertyOptional({ example: 'https://riyadh-realestate.sa' })
-  @IsUrl()
+  @IsUrl({}, { message: 'يجب أن يكون الموقع الإلكتروني رابطاً صالحاً' })
   @IsOptional()
   website?: string;
 
@@ -33,7 +33,7 @@ export class CreateCompanyDto {
   phone?: string;
 
   @ApiPropertyOptional({ example: 'info@riyadh-realestate.sa' })
-  @IsEmail()
+  @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
   @IsOptional()
   email?: string;
 

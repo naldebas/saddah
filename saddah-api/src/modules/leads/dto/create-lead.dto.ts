@@ -52,7 +52,7 @@ export class CreateLeadDto {
 
   @ApiPropertyOptional({ description: 'البريد الإلكتروني' })
   @IsOptional()
-  @IsEmail()
+  @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
   email?: string;
 
   @ApiPropertyOptional({ description: 'رقم الهاتف', example: '+966551234567' })

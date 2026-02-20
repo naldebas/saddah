@@ -9,6 +9,24 @@ import {
   isNetworkError,
   isTimeoutError,
 } from '../errorHandler';
+
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  },
+}));
+
+// Mock i18n to return fallback values
+vi.mock('@/i18n', () => ({
+  default: {
+    t: (_key: string, fallback: string) => fallback,
+  },
+}));
+
 import { toast } from 'sonner';
 
 // Create axios error helper

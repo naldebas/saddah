@@ -73,10 +73,12 @@ export function CreateCompanyModal({
     if (!formData.name.trim()) {
       newErrors.name = 'اسم الشركة مطلوب';
     }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    // Only validate email if provided and not empty (optional field)
+    if (formData.email && formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = 'البريد الإلكتروني غير صالح';
     }
-    if (formData.website && !formData.website.startsWith('http')) {
+    // Only validate website if provided and not empty (optional field)
+    if (formData.website && formData.website.trim() && !formData.website.trim().startsWith('http')) {
       newErrors.website = 'يجب أن يبدأ الموقع بـ http:// أو https://';
     }
 

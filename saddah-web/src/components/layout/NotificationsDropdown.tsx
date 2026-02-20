@@ -34,8 +34,9 @@ export function NotificationsDropdown() {
       const response = await notificationsApi.getAll(10, 0);
       setNotifications(response.notifications);
       setUnreadCount(response.unreadCount);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch {
+      // Silently handle notification fetch errors - they're not critical
+      // Keep existing notifications state, don't disrupt user experience
     }
   };
 
@@ -46,8 +47,8 @@ export function NotificationsDropdown() {
         prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+    } catch {
+      // Silently handle - optimistic UI update already done
     }
   };
 
@@ -57,8 +58,8 @@ export function NotificationsDropdown() {
       await notificationsApi.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
+    } catch {
+      // Silently handle - non-critical operation
     } finally {
       setIsLoading(false);
     }
@@ -68,8 +69,8 @@ export function NotificationsDropdown() {
     try {
       await notificationsApi.delete(notificationId);
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
+    } catch {
+      // Silently handle - non-critical operation
     }
   };
 

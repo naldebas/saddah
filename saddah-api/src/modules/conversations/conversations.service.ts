@@ -41,7 +41,7 @@ export class ConversationsService {
         contactId: dto.contactId,
         assignedToId: dto.assignedToId,
         status: dto.status || 'bot',
-        qualificationData: dto.qualificationData || {},
+        qualificationData: (dto.qualificationData || {}) as Prisma.InputJsonValue,
       },
       include: {
         contact: {
@@ -220,11 +220,10 @@ export class ConversationsService {
     return this.prisma.conversation.update({
       where: { id },
       data: {
-        ...(dto.contactId !== undefined && { contactId: dto.contactId }),
-        ...(dto.assignedToId !== undefined && { assignedToId: dto.assignedToId }),
         ...(dto.status && { status: dto.status }),
+        ...(dto.assignedToId !== undefined && { assignedToId: dto.assignedToId }),
         ...(dto.qualificationData && {
-          qualificationData: dto.qualificationData
+          qualificationData: dto.qualificationData as Prisma.InputJsonValue
         }),
       },
       include: {
@@ -413,7 +412,7 @@ export class ConversationsService {
    */
   async handleIncomingMessage(tenantId: string, dto: IncomingMessageDto) {
     // Find or create conversation
-    let conversation = await this.findByChannelId(tenantId, dto.channel, dto.channelId);
+    let conversation: any = await this.findByChannelId(tenantId, dto.channel, dto.channelId);
 
     if (!conversation) {
       conversation = await this.create(tenantId, {

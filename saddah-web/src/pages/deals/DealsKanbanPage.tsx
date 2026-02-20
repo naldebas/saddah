@@ -247,9 +247,13 @@ export function DealsKanbanPage() {
           setSelectedPipeline(defaultPipeline.id);
         } else if (pipelinesData.length > 0) {
           setSelectedPipeline(pipelinesData[0].id);
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Failed to fetch pipelines:', error);
+        toast.error('فشل في تحميل مسارات المبيعات');
+        setIsLoading(false);
       }
     };
 

@@ -1,7 +1,7 @@
 // src/modules/notifications/notifications.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
-import { Notification, Prisma } from '@prisma/client';
+import { Notification, Prisma, Prisma as PrismaTypes } from '@prisma/client';
 
 export interface CreateNotificationDto {
   tenantId: string;
@@ -33,7 +33,7 @@ export class NotificationsService {
         type: dto.type,
         title: dto.title,
         message: dto.message,
-        data: dto.data || {},
+        data: (dto.data || {}) as Prisma.InputJsonValue,
       },
     });
 
@@ -364,11 +364,11 @@ export class NotificationsService {
       type,
       title,
       message,
-      data: data || {},
+      data: (data || {}) as Prisma.InputJsonValue,
     }));
 
     const result = await this.prisma.notification.createMany({
-      data: notifications,
+      data: notifications as Prisma.NotificationCreateManyInput[],
     });
 
     return result.count;

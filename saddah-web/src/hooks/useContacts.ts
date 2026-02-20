@@ -1,39 +1,49 @@
+/**
+ * useContacts Hook
+ * React Query hook for contacts CRUD operations
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { queryKeys } from './queryKeys';
 import {
   contactsApi,
-  type Contact,
-  type ContactsParams,
-  type ContactsResponse,
-  type CreateContactDto,
-  type UpdateContactDto,
+  Contact,
+  ContactsParams,
+  CreateContactDto,
+  UpdateContactDto,
 } from '@/services/contacts.api';
 
+// Query keys
+export const contactsKeys = {
+  all: ['contacts'] as const,
+  lists: () => [...contactsKeys.all, 'list'] as const,
+  list: (params: ContactsParams) => [...contactsKeys.lists(), params] as const,
+  details: () => [...contactsKeys.all, 'detail'] as const,
+  detail: (id: string) => [...contactsKeys.details(), id] as const,
+};
+
 /**
- * Hook to fetch paginated contacts list
+ * Fetch contacts list
  */
 export function useContacts(params: ContactsParams = {}) {
   return useQuery({
-    queryKey: queryKeys.contacts.list(params),
+    queryKey: contactsKeys.list(params),
     queryFn: () => contactsApi.getAll(params),
-    placeholderData: (previousData) => previousData,
   });
 }
 
 /**
- * Hook to fetch a single contact by ID
+ * Fetch single contact
  */
-export function useContact(id: string | null | undefined) {
+export function useContact(id: string) {
   return useQuery({
-    queryKey: queryKeys.contacts.detail(id!),
-    queryFn: () => contactsApi.getById(id!),
+    queryKey: contactsKeys.detail(id),
+    queryFn: () => contactsApi.getById(id),
     enabled: !!id,
   });
 }
 
 /**
- * Hook to create a new contact
+ * Create contact mutation
  */
 export function useCreateContact() {
   const queryClient = useQueryClient();
@@ -41,18 +51,13 @@ export function useCreateContact() {
   return useMutation({
     mutationFn: (data: CreateContactDto) => contactsApi.create(data),
     onSuccess: () => {
-      // Invalidate contacts list to refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
-    },
-    onError: (error: Error) => {
-      console.error('Failed to create contact:', error);
-      toast.error('فشل في إنشاء جهة الاتصال');
+      queryClient.invalidateQueries({ queryKey: contactsKeys.lists() });
     },
   });
 }
 
 /**
- * Hook to update a contact
+ * Update contact mutation
  */
 export function useUpdateContact() {
   const queryClient = useQueryClient();
@@ -60,76 +65,26 @@ export function useUpdateContact() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateContactDto }) =>
       contactsApi.update(id, data),
-    onMutate: async ({ id, data }) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.contacts.detail(id) });
-
-      // Snapshot the previous value
-      const previousContact = queryClient.getQueryData<Contact>(
-        queryKeys.contacts.detail(id)
+    onSuccess: (updatedContact) => {
+      queryClient.invalidateQueries({ queryKey: contactsKeys.lists() });
+      queryClient.setQueryData(
+        contactsKeys.detail(updatedContact.id),
+        updatedContact,
       );
-
-      // Optimistically update the cache
-      if (previousContact) {
-        queryClient.setQueryData<Contact>(queryKeys.contacts.detail(id), {
-          ...previousContact,
-          ...data,
-        });
-      }
-
-      return { previousContact };
-    },
-    onError: (error, { id }, context) => {
-      // Rollback on error
-      if (context?.previousContact) {
-        queryClient.setQueryData(
-          queryKeys.contacts.detail(id),
-          context.previousContact
-        );
-      }
-      console.error('Failed to update contact:', error);
-      toast.error('فشل في تحديث جهة الاتصال');
-    },
-    onSettled: (_, __, { id }) => {
-      // Refetch to ensure data is in sync
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.detail(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
     },
   });
 }
 
 /**
- * Hook to delete a contact
+ * Delete contact mutation
  */
 export function useDeleteContact() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) => contactsApi.delete(id),
-    onSuccess: (_, id) => {
-      // Remove from cache
-      queryClient.removeQueries({ queryKey: queryKeys.contacts.detail(id) });
-      // Invalidate list to refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
-    },
-    onError: (error: Error) => {
-      console.error('Failed to delete contact:', error);
-      toast.error('فشل في حذف جهة الاتصال');
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contactsKeys.lists() });
     },
   });
-}
-
-/**
- * Hook to prefetch a contact (for hover previews, etc.)
- */
-export function usePrefetchContact() {
-  const queryClient = useQueryClient();
-
-  return (id: string) => {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.contacts.detail(id),
-      queryFn: () => contactsApi.getById(id),
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    });
-  };
 }

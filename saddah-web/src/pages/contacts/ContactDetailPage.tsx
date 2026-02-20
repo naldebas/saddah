@@ -36,6 +36,7 @@ import { contactsApi, type Contact } from '@/services/contacts.api';
 import { activitiesApi, type Activity } from '@/services/activities.api';
 import { dealsApi, type Deal } from '@/services/deals.api';
 import { EditContactModal } from './EditContactModal';
+import { CreateActivityModal } from '../activities/CreateActivityModal';
 
 const activityTypeIcons: Record<string, typeof Phone> = {
   call: PhoneCall,
@@ -74,6 +75,7 @@ export function ContactDetailPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -304,7 +306,7 @@ export function ContactDetailPage() {
               <TabPanel value="activities" className="px-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900">الأنشطة</h3>
-                  <Button size="sm">
+                  <Button size="sm" onClick={() => setIsActivityModalOpen(true)}>
                     <Plus className="h-4 w-4" />
                     إضافة نشاط
                   </Button>
@@ -464,6 +466,23 @@ export function ContactDetailPage() {
           setContact(updatedContact);
           setIsEditModalOpen(false);
           toast.success('تم تحديث جهة الاتصال بنجاح');
+        }}
+      />
+
+      {/* Create Activity Modal */}
+      <CreateActivityModal
+        isOpen={isActivityModalOpen}
+        onClose={() => setIsActivityModalOpen(false)}
+        contactId={id}
+        onSuccess={() => {
+          setIsActivityModalOpen(false);
+          // Refresh activities list
+          if (id) {
+            activitiesApi.getAll({ contactId: id, limit: 50 }).then((data) => {
+              setActivities(data.data);
+            });
+          }
+          toast.success('تمت إضافة النشاط بنجاح');
         }}
       />
 

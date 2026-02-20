@@ -22,7 +22,7 @@ export class CreateContactDto {
   lastName: string;
 
   @ApiPropertyOptional({ example: 'mohammed@example.com' })
-  @IsEmail()
+  @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
   @IsOptional()
   email?: string;
 
