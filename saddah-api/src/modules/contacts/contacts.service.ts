@@ -255,16 +255,17 @@ export class ContactsService {
       select: { id: true, tags: true },
     });
 
-    let successCount = 0;
-
-    for (const contact of contacts) {
+    // Use transaction to batch all updates (fixes N+1 query issue)
+    const updateOperations = contacts.map((contact) => {
       const newTags = replace ? tags : [...new Set([...contact.tags, ...tags])];
-      await this.prisma.contact.update({
+      return this.prisma.contact.update({
         where: { id: contact.id },
         data: { tags: newTags },
       });
-      successCount++;
-    }
+    });
+
+    await this.prisma.$transaction(updateOperations);
+    const successCount = contacts.length;
 
     return {
       success: successCount,

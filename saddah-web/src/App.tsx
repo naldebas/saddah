@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui/Spinner';
+import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 
 // Eager load critical pages
 import { LoginPage } from '@/pages/auth/LoginPage';
@@ -56,6 +57,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
+    <ErrorBoundary>
     <Routes>
       {/* Public routes */}
       <Route
@@ -138,6 +140,7 @@ function App() {
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </ErrorBoundary>
   );
 }
 

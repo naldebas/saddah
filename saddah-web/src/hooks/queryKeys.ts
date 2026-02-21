@@ -3,12 +3,15 @@
  * This ensures consistent cache key management across the application
  */
 
+// Generic params type for query keys
+type QueryParams = Record<string, unknown> | object;
+
 export const queryKeys = {
   // Contacts
   contacts: {
     all: ['contacts'] as const,
     lists: () => [...queryKeys.contacts.all, 'list'] as const,
-    list: (params: Record<string, unknown>) => [...queryKeys.contacts.lists(), params] as const,
+    list: (params: QueryParams) => [...queryKeys.contacts.lists(), params] as const,
     details: () => [...queryKeys.contacts.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.contacts.details(), id] as const,
   },
@@ -17,7 +20,7 @@ export const queryKeys = {
   companies: {
     all: ['companies'] as const,
     lists: () => [...queryKeys.companies.all, 'list'] as const,
-    list: (params: Record<string, unknown>) => [...queryKeys.companies.lists(), params] as const,
+    list: (params: QueryParams) => [...queryKeys.companies.lists(), params] as const,
     details: () => [...queryKeys.companies.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.companies.details(), id] as const,
     industries: () => [...queryKeys.companies.all, 'industries'] as const,
@@ -28,7 +31,7 @@ export const queryKeys = {
   deals: {
     all: ['deals'] as const,
     lists: () => [...queryKeys.deals.all, 'list'] as const,
-    list: (params: Record<string, unknown>) => [...queryKeys.deals.lists(), params] as const,
+    list: (params: QueryParams) => [...queryKeys.deals.lists(), params] as const,
     details: () => [...queryKeys.deals.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.deals.details(), id] as const,
     kanban: (pipelineId: string) => [...queryKeys.deals.all, 'kanban', pipelineId] as const,
@@ -39,7 +42,7 @@ export const queryKeys = {
   leads: {
     all: ['leads'] as const,
     lists: () => [...queryKeys.leads.all, 'list'] as const,
-    list: (params: Record<string, unknown>) => [...queryKeys.leads.lists(), params] as const,
+    list: (params: QueryParams) => [...queryKeys.leads.lists(), params] as const,
     details: () => [...queryKeys.leads.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.leads.details(), id] as const,
     statistics: () => [...queryKeys.leads.all, 'statistics'] as const,
@@ -49,7 +52,7 @@ export const queryKeys = {
   activities: {
     all: ['activities'] as const,
     lists: () => [...queryKeys.activities.all, 'list'] as const,
-    list: (params: Record<string, unknown>) => [...queryKeys.activities.lists(), params] as const,
+    list: (params: QueryParams) => [...queryKeys.activities.lists(), params] as const,
     details: () => [...queryKeys.activities.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.activities.details(), id] as const,
     timeline: (contactId?: string, dealId?: string) =>
@@ -80,10 +83,10 @@ export const queryKeys = {
   // Reports
   reports: {
     all: ['reports'] as const,
-    sales: (params: Record<string, unknown>) => [...queryKeys.reports.all, 'sales', params] as const,
-    leads: (params: Record<string, unknown>) => [...queryKeys.reports.all, 'leads', params] as const,
-    activities: (params: Record<string, unknown>) => [...queryKeys.reports.all, 'activities', params] as const,
-    contacts: (params: Record<string, unknown>) => [...queryKeys.reports.all, 'contacts', params] as const,
+    sales: (params: QueryParams) => [...queryKeys.reports.all, 'sales', params] as const,
+    leads: (params: QueryParams) => [...queryKeys.reports.all, 'leads', params] as const,
+    activities: (params: QueryParams) => [...queryKeys.reports.all, 'activities', params] as const,
+    contacts: (params: QueryParams) => [...queryKeys.reports.all, 'contacts', params] as const,
   },
 
   // Users
@@ -113,12 +116,12 @@ export const queryKeys = {
   conversations: {
     all: ['conversations'] as const,
     lists: () => [...queryKeys.conversations.all, 'list'] as const,
-    list: (params: Record<string, unknown>) => [...queryKeys.conversations.lists(), params] as const,
-    my: (params: Record<string, unknown>) => [...queryKeys.conversations.all, 'my', params] as const,
-    unassigned: (params: Record<string, unknown>) => [...queryKeys.conversations.all, 'unassigned', params] as const,
+    list: (params: QueryParams) => [...queryKeys.conversations.lists(), params] as const,
+    my: (params: QueryParams) => [...queryKeys.conversations.all, 'my', params] as const,
+    unassigned: (params: QueryParams) => [...queryKeys.conversations.all, 'unassigned', params] as const,
     details: () => [...queryKeys.conversations.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.conversations.details(), id] as const,
-    messages: (conversationId: string, params?: Record<string, unknown>) =>
+    messages: (conversationId: string, params?: QueryParams) =>
       [...queryKeys.conversations.all, conversationId, 'messages', params] as const,
     statistics: () => [...queryKeys.conversations.all, 'statistics'] as const,
   },

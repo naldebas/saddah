@@ -1,6 +1,9 @@
 // src/modules/users/dto/create-user.dto.ts
-import { IsEmail, IsString, IsOptional, MinLength, IsEnum } from 'class-validator';
+import { IsEmail, IsString, IsOptional, MinLength, IsEnum, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+// Password must contain at least one uppercase, one lowercase, one number, and one special character
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=])[A-Za-z\d@$!%*?&#^()_\-+=]{8,}$/;
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -17,6 +20,9 @@ export class CreateUserDto {
   @ApiProperty({ example: 'Password@123' })
   @IsString()
   @MinLength(8, { message: 'يجب أن تكون كلمة المرور 8 أحرف على الأقل' })
+  @Matches(PASSWORD_REGEX, {
+    message: 'كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم ورمز خاص على الأقل',
+  })
   password: string;
 
   @ApiProperty({ example: 'أحمد' })

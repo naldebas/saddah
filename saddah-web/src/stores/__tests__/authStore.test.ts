@@ -43,7 +43,6 @@ describe('authStore', () => {
 
   beforeEach(() => {
     // Reset the store before each test
-    const store = useAuthStore.getState();
     act(() => {
       useAuthStore.setState({
         user: null,

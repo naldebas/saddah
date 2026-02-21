@@ -1,7 +1,10 @@
 // src/modules/users/dto/update-user.dto.ts
-import { IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsBoolean, MinLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from './create-user.dto';
+
+// Password must contain at least one uppercase, one lowercase, one number, and one special character
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+=])[A-Za-z\d@$!%*?&#^()_\-+=]{8,}$/;
 
 export class UpdateUserDto {
   @ApiProperty({ example: 'أحمد', required: false })
@@ -64,6 +67,10 @@ export class ChangePasswordDto {
 
   @ApiProperty({ example: 'NewPassword@123' })
   @IsString()
+  @MinLength(8, { message: 'يجب أن تكون كلمة المرور 8 أحرف على الأقل' })
+  @Matches(PASSWORD_REGEX, {
+    message: 'كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم ورمز خاص على الأقل',
+  })
   newPassword: string;
 
   @ApiProperty({ example: 'NewPassword@123' })

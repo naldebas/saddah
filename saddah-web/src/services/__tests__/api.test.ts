@@ -4,8 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { api } from '../api';
+import { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/authStore';
 
 // Mock axios

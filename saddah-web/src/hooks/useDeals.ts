@@ -11,7 +11,6 @@ import {
   type MoveDealDto,
   type CloseDealDto,
   type KanbanResponse,
-  type Pipeline,
 } from '@/services/deals.api';
 
 /**
@@ -108,10 +107,20 @@ export function useUpdateDeal() {
       );
 
       if (previousDeal) {
-        queryClient.setQueryData<Deal>(queryKeys.deals.detail(id), {
+        // Create merged deal with proper type handling
+        // Convert value to string if provided (Deal.value is string, UpdateDealDto.value is number)
+        const mergedDeal: Deal = {
           ...previousDeal,
-          ...data,
-        });
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.contactId !== undefined && { contactId: data.contactId }),
+          ...(data.companyId !== undefined && { companyId: data.companyId }),
+          ...(data.stageId !== undefined && { stageId: data.stageId }),
+          ...(data.value !== undefined && { value: String(data.value) }),
+          ...(data.currency !== undefined && { currency: data.currency }),
+          ...(data.expectedCloseDate !== undefined && { expectedCloseDate: data.expectedCloseDate }),
+          ...(data.tags !== undefined && { tags: data.tags }),
+        };
+        queryClient.setQueryData<Deal>(queryKeys.deals.detail(id), mergedDeal);
       }
 
       return { previousDeal };

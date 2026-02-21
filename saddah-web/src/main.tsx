@@ -5,8 +5,12 @@ import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import App from './App';
+import { setupGlobalErrorHandler } from './utils/errorHandler';
 import './i18n';
 import './styles/globals.css';
+
+// Initialize global error handlers for unhandled promise rejections and errors
+setupGlobalErrorHandler();
 
 const queryClient = new QueryClient({
   defaultOptions: {

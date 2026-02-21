@@ -6,27 +6,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   contactsApi,
-  Contact,
   ContactsParams,
   CreateContactDto,
   UpdateContactDto,
 } from '@/services/contacts.api';
+import { queryKeys } from './queryKeys';
 
-// Query keys
-export const contactsKeys = {
-  all: ['contacts'] as const,
-  lists: () => [...contactsKeys.all, 'list'] as const,
-  list: (params: ContactsParams) => [...contactsKeys.lists(), params] as const,
-  details: () => [...contactsKeys.all, 'detail'] as const,
-  detail: (id: string) => [...contactsKeys.details(), id] as const,
-};
+// Re-export for backwards compatibility
+export const contactsKeys = queryKeys.contacts;
 
 /**
  * Fetch contacts list
  */
 export function useContacts(params: ContactsParams = {}) {
   return useQuery({
-    queryKey: contactsKeys.list(params),
+    queryKey: queryKeys.contacts.list(params),
     queryFn: () => contactsApi.getAll(params),
   });
 }
@@ -36,7 +30,7 @@ export function useContacts(params: ContactsParams = {}) {
  */
 export function useContact(id: string) {
   return useQuery({
-    queryKey: contactsKeys.detail(id),
+    queryKey: queryKeys.contacts.detail(id),
     queryFn: () => contactsApi.getById(id),
     enabled: !!id,
   });
@@ -51,7 +45,7 @@ export function useCreateContact() {
   return useMutation({
     mutationFn: (data: CreateContactDto) => contactsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contactsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
     },
   });
 }
@@ -66,9 +60,9 @@ export function useUpdateContact() {
     mutationFn: ({ id, data }: { id: string; data: UpdateContactDto }) =>
       contactsApi.update(id, data),
     onSuccess: (updatedContact) => {
-      queryClient.invalidateQueries({ queryKey: contactsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
       queryClient.setQueryData(
-        contactsKeys.detail(updatedContact.id),
+        queryKeys.contacts.detail(updatedContact.id),
         updatedContact,
       );
     },
@@ -84,7 +78,21 @@ export function useDeleteContact() {
   return useMutation({
     mutationFn: (id: string) => contactsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contactsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
     },
   });
+}
+
+/**
+ * Prefetch contact for faster navigation
+ */
+export function usePrefetchContact() {
+  const queryClient = useQueryClient();
+
+  return (id: string) => {
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.contacts.detail(id),
+      queryFn: () => contactsApi.getById(id),
+    });
+  };
 }

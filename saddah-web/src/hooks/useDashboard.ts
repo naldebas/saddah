@@ -1,15 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from './queryKeys';
-import {
-  dashboardApi,
-  type DashboardStats,
-  type DashboardWidgets,
-  type DealsByStage,
-  type LeadsBySource,
-  type SalesPerformance,
-  type MonthlyRevenue,
-  type RecentActivity,
-} from '@/services/dashboard.api';
+import { dashboardApi } from '@/services/dashboard.api';
 
 /**
  * Hook to fetch all dashboard statistics

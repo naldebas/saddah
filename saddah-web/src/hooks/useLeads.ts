@@ -4,7 +4,6 @@ import { queryKeys } from './queryKeys';
 import {
   leadsApi,
   type Lead,
-  type LeadStatistics,
   type QueryLeadsParams,
   type CreateLeadDto,
   type UpdateLeadDto,

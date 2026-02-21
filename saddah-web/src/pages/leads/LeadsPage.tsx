@@ -6,7 +6,7 @@ import { Button, Card, Spinner } from '@/components/ui';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { useLeads, useLeadStatistics, useCreateLead } from '@/hooks';
+import { useLeads, useLeadStatistics } from '@/hooks';
 import type { Lead } from '@/services/leads.api';
 import { CreateLeadModal } from './CreateLeadModal';
 import { LeadDetailModal } from './LeadDetailModal';
@@ -53,7 +53,6 @@ export function LeadsPage() {
   const {
     data: leadsData,
     isLoading,
-    error: leadsError
   } = useLeads(queryParams);
 
   const {
@@ -65,11 +64,6 @@ export function LeadsPage() {
   const leads = leadsData?.data ?? [];
   const totalPages = leadsData?.meta.totalPages ?? 1;
   const totalItems = leadsData?.meta.total ?? 0;
-
-  // Show error toast if fetch failed
-  if (leadsError) {
-    toast.error(t('leads.loadFailed'));
-  }
 
   const handleSort = (column: string, direction: 'asc' | 'desc') => {
     setSortBy(column);

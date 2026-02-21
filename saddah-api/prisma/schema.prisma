@@ -212,6 +212,11 @@ model Deal {
   @@index([tenantId, ownerId])
   @@index([tenantId, stageId])
   @@index([tenantId, status])
+  @@index([tenantId, contactId])
+  @@index([tenantId, companyId])
+  @@index([tenantId, pipelineId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, closedAt])
   @@map("deals")
 }
 
@@ -256,6 +261,8 @@ model Lead {
   @@index([tenantId, status])
   @@index([tenantId, score])
   @@index([tenantId, ownerId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, sourceId])
   @@map("leads")
 }
 
@@ -306,6 +313,9 @@ model Activity {
   @@index([tenantId, dealId])
   @@index([tenantId, type])
   @@index([tenantId, dueDate])
+  @@index([tenantId, createdById])
+  @@index([tenantId, createdById, isCompleted])
+  @@index([tenantId, createdAt])
   @@map("activities")
 }
 
@@ -338,6 +348,7 @@ model Conversation {
   @@index([tenantId, status])
   @@index([tenantId, channelId])
   @@index([tenantId, assignedToId])
+  @@index([tenantId, contactId])
   @@map("conversations")
 }
 
@@ -361,6 +372,7 @@ model Message {
 
   @@index([conversationId])
   @@index([conversationId, createdAt])
+  @@index([externalId])
   @@map("messages")
 }
 

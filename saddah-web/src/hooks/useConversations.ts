@@ -2,8 +2,6 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import { queryKeys } from './queryKeys';
 import {
   conversationsApi,
-  type Conversation,
-  type Message,
   type CreateConversationDto,
   type UpdateConversationDto,
   type SendMessageDto,
