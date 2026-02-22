@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, ModalFooter, Button, Input, Select } from '@/components/ui';
 import { companiesApi, type CreateCompanyDto } from '@/services/companies.api';
+import { userApi, type User } from '@/services/user.api';
 
 interface CreateCompanyModalProps {
   isOpen: boolean;
@@ -45,8 +46,10 @@ export function CreateCompanyModal({
 }: CreateCompanyModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState<CreateCompanyDto>({
     name: '',
+    ownerId: '',
     industry: '',
     website: '',
     phone: '',
@@ -56,6 +59,12 @@ export function CreateCompanyModal({
     country: 'SA',
     size: '',
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      userApi.getAll().then(setUsers).catch(console.error);
+    }
+  }, [isOpen]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -98,6 +107,7 @@ export function CreateCompanyModal({
       // Reset form
       setFormData({
         name: '',
+        ownerId: '',
         industry: '',
         website: '',
         phone: '',
@@ -134,6 +144,20 @@ export function CreateCompanyModal({
           error={errors.name}
           required
         />
+
+        <Select
+          label="مدير الحساب"
+          name="ownerId"
+          value={formData.ownerId}
+          onChange={handleChange}
+        >
+          <option value="">اختر مدير الحساب (اختياري)</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.firstName} {user.lastName}
+            </option>
+          ))}
+        </Select>
 
         <div className="grid grid-cols-2 gap-4">
           <Select

@@ -60,6 +60,7 @@ export interface CreateContactDto {
   whatsapp?: string;
   title?: string;
   companyId?: string;
+  ownerId?: string;
   source?: string;
   tags?: string[];
 }

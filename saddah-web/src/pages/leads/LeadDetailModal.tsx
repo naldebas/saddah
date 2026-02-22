@@ -8,6 +8,7 @@ import {
   Edit,
   Trash2,
   ArrowRight,
+  User,
 } from 'lucide-react';
 import {
   Button,
@@ -383,6 +384,17 @@ export function LeadDetailModal({
                           />
                         </div>
                         <span className="text-lg font-bold text-primary-700">{lead.score}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Owner Information */}
+                  {lead.owner && (
+                    <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg">
+                      <User className="h-5 w-5 text-indigo-500" />
+                      <div>
+                        <p className="text-sm text-gray-500">المسؤول</p>
+                        <p className="font-medium">{lead.owner.firstName} {lead.owner.lastName}</p>
                       </div>
                     </div>
                   )}

@@ -10,10 +10,11 @@ import { QueryCompaniesDto } from './dto/query-companies.dto';
 export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(tenantId: string, dto: CreateCompanyDto) {
+  async create(tenantId: string, userId: string, dto: CreateCompanyDto) {
     return this.prisma.company.create({
       data: {
         tenantId,
+        ownerId: dto.ownerId || userId,
         name: dto.name,
         industry: dto.industry,
         website: dto.website,
@@ -27,6 +28,13 @@ export class CompaniesService {
         customFields: dto.customFields || {},
       },
       include: {
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
         _count: {
           select: {
             contacts: true,
@@ -74,6 +82,13 @@ export class CompaniesService {
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
           _count: {
             select: {
               contacts: true,
@@ -104,6 +119,14 @@ export class CompaniesService {
         isActive: true,
       },
       include: {
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
         contacts: {
           where: { isActive: true },
           orderBy: { createdAt: 'desc' },
@@ -150,6 +173,7 @@ export class CompaniesService {
     return this.prisma.company.update({
       where: { id },
       data: {
+        ...(dto.ownerId && { ownerId: dto.ownerId }),
         ...(dto.name && { name: dto.name }),
         ...(dto.industry !== undefined && { industry: dto.industry }),
         ...(dto.website !== undefined && { website: dto.website }),
@@ -163,6 +187,13 @@ export class CompaniesService {
         ...(dto.customFields && { customFields: dto.customFields }),
       },
       include: {
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
         _count: {
           select: {
             contacts: true,

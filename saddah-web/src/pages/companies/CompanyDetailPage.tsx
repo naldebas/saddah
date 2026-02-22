@@ -14,6 +14,7 @@ import {
   Edit,
   Trash2,
   Plus,
+  User,
 } from 'lucide-react';
 import {
   Button,
@@ -233,6 +234,20 @@ export function CompanyDetailPage() {
                 <div>
                   <p className="text-sm text-gray-500">حجم الشركة</p>
                   <Badge variant="default">{sizeLabels[company.size] || company.size}</Badge>
+                </div>
+              </div>
+            )}
+
+            {company.owner && (
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <User className="h-4 w-4 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">مدير الحساب</p>
+                  <p className="font-medium">
+                    {company.owner.firstName} {company.owner.lastName}
+                  </p>
                 </div>
               </div>
             )}

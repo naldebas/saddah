@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, ModalFooter, Button, Input, Select } from '@/components/ui';
 import { contactsApi, type CreateContactDto } from '@/services/contacts.api';
+import { userApi, type User } from '@/services/user.api';
 
 interface CreateContactModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export function CreateContactModal({
 }: CreateContactModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState<CreateContactDto>({
     firstName: '',
     lastName: '',
@@ -35,7 +37,14 @@ export function CreateContactModal({
     title: '',
     source: 'manual',
     companyId: defaultCompanyId,
+    ownerId: '',
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      userApi.getAll().then(setUsers).catch(console.error);
+    }
+  }, [isOpen]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -87,6 +96,7 @@ export function CreateContactModal({
         whatsapp: '',
         title: '',
         source: 'manual',
+        ownerId: '',
       });
     } catch (error: unknown) {
       console.error('Failed to create contact:', error);
@@ -163,18 +173,34 @@ export function CreateContactModal({
           onChange={handleChange}
         />
 
-        <Select
-          label="المصدر"
-          name="source"
-          value={formData.source}
-          onChange={handleChange}
-        >
-          {sources.map((source) => (
-            <option key={source.value} value={source.value}>
-              {source.label}
-            </option>
-          ))}
-        </Select>
+        <div className="grid grid-cols-2 gap-4">
+          <Select
+            label="المصدر"
+            name="source"
+            value={formData.source}
+            onChange={handleChange}
+          >
+            {sources.map((source) => (
+              <option key={source.value} value={source.value}>
+                {source.label}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            label="المسؤول"
+            name="ownerId"
+            value={formData.ownerId}
+            onChange={handleChange}
+          >
+            <option value="">اختر المسؤول (اختياري)</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.firstName} {user.lastName}
+              </option>
+            ))}
+          </Select>
+        </div>
 
         {errors.submit && (
           <p className="text-sm text-error-500">{errors.submit}</p>

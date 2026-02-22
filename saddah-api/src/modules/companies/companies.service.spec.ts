@@ -8,10 +8,12 @@ describe('CompaniesService', () => {
   let prisma: PrismaService;
 
   const mockTenantId = 'tenant-123';
+  const mockUserId = 'user-123';
 
   const mockCompany = {
     id: 'company-123',
     tenantId: mockTenantId,
+    ownerId: mockUserId,
     name: 'شركة التطوير العقاري',
     industry: 'تطوير عقاري',
     website: 'https://example.com',
@@ -74,11 +76,12 @@ describe('CompaniesService', () => {
 
       mockPrismaService.company.create.mockResolvedValue(mockCompany);
 
-      const result = await service.create(mockTenantId, createDto);
+      const result = await service.create(mockTenantId, mockUserId, createDto);
 
       expect(mockPrismaService.company.create).toHaveBeenCalledWith({
         data: {
           tenantId: mockTenantId,
+          ownerId: mockUserId,
           name: createDto.name,
           industry: createDto.industry,
           website: undefined,
@@ -107,7 +110,7 @@ describe('CompaniesService', () => {
         country: 'AE',
       });
 
-      await service.create(mockTenantId, createDto);
+      await service.create(mockTenantId, mockUserId, createDto);
 
       expect(mockPrismaService.company.create).toHaveBeenCalledWith(
         expect.objectContaining({

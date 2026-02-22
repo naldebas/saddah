@@ -3,6 +3,7 @@ import { Modal, ModalFooter, Button, Input, Select } from '@/components/ui';
 import { dealsApi, pipelinesApi, type CreateDealDto, type Pipeline } from '@/services/deals.api';
 import { contactsApi, type Contact } from '@/services/contacts.api';
 import { companiesApi, type Company } from '@/services/companies.api';
+import { userApi, type User } from '@/services/user.api';
 
 interface CreateDealModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function CreateDealModal({
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState<CreateDealDto>({
     title: '',
     value: 0,
@@ -37,19 +39,22 @@ export function CreateDealModal({
     contactId: defaultContactId || '',
     companyId: defaultCompanyId || '',
     expectedCloseDate: '',
+    ownerId: '',
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pipelinesData, contactsData, companiesData] = await Promise.all([
+        const [pipelinesData, contactsData, companiesData, usersData] = await Promise.all([
           pipelinesApi.getAll(),
           contactsApi.getAll({ limit: 100 }),
           companiesApi.getAll({ limit: 100 }),
+          userApi.getAll(),
         ]);
         setPipelines(pipelinesData);
         setContacts(contactsData.data);
         setCompanies(companiesData.data);
+        setUsers(usersData);
 
         // Set default pipeline and stage
         if (defaultPipelineId) {
@@ -162,6 +167,7 @@ export function CreateDealModal({
         contactId: defaultContactId || '',
         companyId: defaultCompanyId || '',
         expectedCloseDate: '',
+        ownerId: '',
       });
     } catch (error: unknown) {
       console.error('Failed to create deal:', error);
@@ -278,14 +284,30 @@ export function CreateDealModal({
           </Select>
         </div>
 
-        <Input
-          label="تاريخ الإغلاق المتوقع"
-          name="expectedCloseDate"
-          type="date"
-          value={formData.expectedCloseDate}
-          onChange={handleChange}
-          dir="ltr"
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="تاريخ الإغلاق المتوقع"
+            name="expectedCloseDate"
+            type="date"
+            value={formData.expectedCloseDate}
+            onChange={handleChange}
+            dir="ltr"
+          />
+
+          <Select
+            label="المسؤول"
+            name="ownerId"
+            value={formData.ownerId}
+            onChange={handleChange}
+          >
+            <option value="">اختر المسؤول (اختياري)</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.firstName} {user.lastName}
+              </option>
+            ))}
+          </Select>
+        </div>
 
         {errors.submit && (
           <p className="text-sm text-error-500">{errors.submit}</p>

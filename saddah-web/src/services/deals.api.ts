@@ -78,6 +78,7 @@ export interface CreateDealDto {
   value: number;
   currency?: string;
   expectedCloseDate?: string;
+  ownerId?: string;
   tags?: string[];
 }
 

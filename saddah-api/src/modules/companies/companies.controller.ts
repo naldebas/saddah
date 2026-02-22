@@ -40,9 +40,10 @@ export class CompaniesController {
   @ApiResponse({ status: 201, description: 'تم إنشاء الشركة بنجاح' })
   create(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
     @Body() dto: CreateCompanyDto,
   ) {
-    return this.companiesService.create(tenantId, dto);
+    return this.companiesService.create(tenantId, userId, dto);
   }
 
   @Get()

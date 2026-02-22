@@ -53,6 +53,7 @@ model User {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   tenant                Tenant         @relation(fields: [tenantId], references: [id])
+  ownedCompanies        Company[]      @relation("CompanyOwner")
   ownedContacts         Contact[]      @relation("ContactOwner")
   ownedDeals            Deal[]         @relation("DealOwner")
   ownedLeads            Lead[]         @relation("LeadOwner")
@@ -120,6 +121,7 @@ model Contact {
 model Company {
   id       String @id @default(uuid())
   tenantId String @map("tenant_id")
+  ownerId  String @map("owner_id")
 
   name         String
   industry     String?
@@ -137,11 +139,13 @@ model Company {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  owner    User      @relation("CompanyOwner", fields: [ownerId], references: [id])
   contacts Contact[]
   deals    Deal[]
 
   @@index([tenantId])
   @@index([tenantId, name])
+  @@index([tenantId, ownerId])
   @@map("companies")
 }
 

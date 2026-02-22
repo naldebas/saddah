@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Input } from '@/components/ui';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { leadsApi, CreateLeadDto } from '@/services/leads.api';
+import { userApi, type User } from '@/services/user.api';
 
 interface CreateLeadModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface CreateLeadModalProps {
 export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState<CreateLeadDto>({
     firstName: '',
     lastName: '',
@@ -27,7 +29,14 @@ export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalP
     financingNeeded: false,
     notes: '',
     tags: [],
+    ownerId: '',
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      userApi.getAll().then(setUsers).catch(console.error);
+    }
+  }, [isOpen]);
 
   const handleChange = (field: keyof CreateLeadDto, value: string | number | boolean | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -70,6 +79,7 @@ export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalP
         financingNeeded: false,
         notes: '',
         tags: [],
+        ownerId: '',
       });
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -154,6 +164,19 @@ export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalP
               <option value="google_ads">إعلانات جوجل</option>
             </Select>
           </div>
+
+          <Select
+            label="المسؤول"
+            value={formData.ownerId}
+            onChange={(e) => handleChange('ownerId', e.target.value)}
+          >
+            <option value="">اختر المسؤول (اختياري)</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.firstName} {user.lastName}
+              </option>
+            ))}
+          </Select>
         </div>
 
         {/* Property Interest */}

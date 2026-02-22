@@ -3,6 +3,7 @@ import { api } from './api';
 export interface Company {
   id: string;
   tenantId: string;
+  ownerId: string;
   name: string;
   industry: string | null;
   website: string | null;
@@ -17,6 +18,11 @@ export interface Company {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  owner?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
   _count?: {
     contacts: number;
     deals: number;
@@ -46,6 +52,7 @@ export interface CompaniesParams {
 
 export interface CreateCompanyDto {
   name: string;
+  ownerId?: string;
   industry?: string;
   website?: string;
   phone?: string;

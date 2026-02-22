@@ -8,6 +8,7 @@ import {
   MinLength,
   IsUrl,
   IsIn,
+  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -16,6 +17,11 @@ export class CreateCompanyDto {
   @IsString()
   @MinLength(2)
   name: string;
+
+  @ApiPropertyOptional({ description: 'معرف مدير الحساب (المسؤول)' })
+  @IsUUID()
+  @IsOptional()
+  ownerId?: string;
 
   @ApiPropertyOptional({ example: 'عقارات', description: 'القطاع/الصناعة' })
   @IsString()
