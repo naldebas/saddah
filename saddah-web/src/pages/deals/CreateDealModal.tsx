@@ -104,6 +104,18 @@ export function CreateDealModal({
     }));
   };
 
+  const handleContactChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const contactId = e.target.value;
+    const contact = contacts.find(c => c.id === contactId);
+
+    // Auto-populate company if contact has one
+    setFormData(prev => ({
+      ...prev,
+      contactId,
+      ...(contact?.companyId && { companyId: contact.companyId }),
+    }));
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -241,7 +253,7 @@ export function CreateDealModal({
             label="جهة الاتصال"
             name="contactId"
             value={formData.contactId}
-            onChange={handleChange}
+            onChange={handleContactChange}
           >
             <option value="">اختر جهة الاتصال</option>
             {contacts.map((contact) => (
