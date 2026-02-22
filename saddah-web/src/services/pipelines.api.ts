@@ -36,6 +36,7 @@ export interface CreatePipelineDto {
     name: string;
     color: string;
     probability: number;
+    order: number;
   }[];
 }
 

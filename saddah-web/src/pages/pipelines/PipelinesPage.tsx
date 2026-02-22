@@ -26,8 +26,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, Card, Badge, Spinner, ConfirmModal } from '@/components/ui';
-import { pipelinesApi, Pipeline, PipelineStage } from '@/services/pipelines.api';
+import { Button, Card, Badge, Spinner, ConfirmModal, Modal, ModalFooter, Input } from '@/components/ui';
+import { pipelinesApi, Pipeline, PipelineStage, CreatePipelineDto } from '@/services/pipelines.api';
 
 const stageColors = [
   '#6B7280', // gray
@@ -187,6 +187,13 @@ export function PipelinesPage() {
   const [editingStageData, setEditingStageData] = useState({ name: '', color: '' });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [stageToDelete, setStageToDelete] = useState<PipelineStage | null>(null);
+  const [isCreatePipelineModalOpen, setIsCreatePipelineModalOpen] = useState(false);
+  const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
+  const [newPipelineData, setNewPipelineData] = useState<CreatePipelineDto>({
+    name: '',
+    description: '',
+    isDefault: false,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -325,6 +332,39 @@ export function PipelinesPage() {
     setDeleteModalOpen(true);
   };
 
+  const handleCreatePipeline = async () => {
+    if (!newPipelineData.name.trim()) {
+      toast.error('يجب إدخال اسم المسار');
+      return;
+    }
+
+    setIsCreatingPipeline(true);
+    try {
+      const newPipeline = await pipelinesApi.create({
+        name: newPipelineData.name,
+        description: newPipelineData.description || undefined,
+        isDefault: newPipelineData.isDefault,
+        stages: [
+          { name: 'تواصل أولي', color: '#3B82F6', probability: 10, order: 0 },
+          { name: 'تأهيل', color: '#8B5CF6', probability: 30, order: 1 },
+          { name: 'عرض', color: '#F59E0B', probability: 50, order: 2 },
+          { name: 'تفاوض', color: '#10B981', probability: 70, order: 3 },
+          { name: 'إغلاق', color: '#EF4444', probability: 90, order: 4 },
+        ],
+      });
+      toast.success('تم إنشاء المسار بنجاح');
+      setIsCreatePipelineModalOpen(false);
+      setNewPipelineData({ name: '', description: '', isDefault: false });
+      fetchPipelines();
+      setSelectedPipeline(newPipeline);
+    } catch (error) {
+      console.error('Failed to create pipeline:', error);
+      toast.error('فشل في إنشاء المسار');
+    } finally {
+      setIsCreatingPipeline(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -347,7 +387,7 @@ export function PipelinesPage() {
             قم بتخصيص مراحل الصفقات وفقاً لعملية البيع الخاصة بك
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsCreatePipelineModalOpen(true)}>
           <Plus className="h-4 w-4" />
           إضافة مسار جديد
         </Button>
@@ -521,6 +561,71 @@ export function PipelinesPage() {
         cancelText="إلغاء"
         variant="danger"
       />
+
+      {/* Create Pipeline Modal */}
+      <Modal
+        isOpen={isCreatePipelineModalOpen}
+        onClose={() => {
+          setIsCreatePipelineModalOpen(false);
+          setNewPipelineData({ name: '', description: '', isDefault: false });
+        }}
+        title="إضافة مسار جديد"
+        size="md"
+      >
+        <div className="space-y-4">
+          <Input
+            label="اسم المسار"
+            value={newPipelineData.name}
+            onChange={(e) => setNewPipelineData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="مثال: مبيعات الفلل"
+            required
+          />
+
+          <Input
+            label="الوصف (اختياري)"
+            value={newPipelineData.description || ''}
+            onChange={(e) => setNewPipelineData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="وصف مختصر للمسار"
+          />
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isDefault"
+              checked={newPipelineData.isDefault}
+              onChange={(e) => setNewPipelineData(prev => ({ ...prev, isDefault: e.target.checked }))}
+              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+            />
+            <label htmlFor="isDefault" className="text-sm text-gray-700">
+              تعيين كمسار افتراضي
+            </label>
+          </div>
+
+          <p className="text-sm text-gray-500">
+            سيتم إنشاء المسار مع مراحل افتراضية يمكنك تعديلها لاحقاً.
+          </p>
+
+          <ModalFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreatePipelineModalOpen(false);
+                setNewPipelineData({ name: '', description: '', isDefault: false });
+              }}
+              disabled={isCreatingPipeline}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleCreatePipeline}
+              disabled={!newPipelineData.name.trim() || isCreatingPipeline}
+              isLoading={isCreatingPipeline}
+            >
+              إنشاء المسار
+            </Button>
+          </ModalFooter>
+        </div>
+      </Modal>
     </div>
   );
 }
