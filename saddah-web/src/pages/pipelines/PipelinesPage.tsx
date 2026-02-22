@@ -280,11 +280,14 @@ export function PipelinesPage() {
     }
 
     try {
-      await pipelinesApi.createStage(selectedPipeline.id, {
+      const stageData = {
         name: newStageName.trim(),
         color: newStageColor,
         probability: 50,
-      });
+      };
+      console.log('Creating stage with data:', stageData);
+      console.log('Pipeline ID:', selectedPipeline.id);
+      await pipelinesApi.createStage(selectedPipeline.id, stageData);
       toast.success('تم إضافة المرحلة بنجاح');
       setNewStageName('');
       setNewStageColor(stageColors[0]);
@@ -292,8 +295,18 @@ export function PipelinesPage() {
       fetchPipelines();
     } catch (error: any) {
       console.error('Failed to add stage:', error);
-      const message = error.response?.data?.message || 'فشل في إضافة المرحلة';
-      toast.error(Array.isArray(message) ? message[0] : message);
+      console.error('Response data:', error.response?.data);
+      console.error('Response status:', error.response?.status);
+      const data = error.response?.data;
+      let message = 'فشل في إضافة المرحلة';
+      if (data?.message) {
+        message = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+      } else if (data?.error) {
+        message = data.error;
+      } else if (error.message) {
+        message = error.message;
+      }
+      toast.error(message);
     }
   };
 
