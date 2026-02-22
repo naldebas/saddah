@@ -50,6 +50,11 @@ export class PipelinesService {
       include: {
         stages: {
           orderBy: { order: 'asc' },
+          include: {
+            _count: {
+              select: { deals: true },
+            },
+          },
         },
         _count: {
           select: { deals: true },
@@ -64,6 +69,11 @@ export class PipelinesService {
       include: {
         stages: {
           orderBy: { order: 'asc' },
+          include: {
+            _count: {
+              select: { deals: true },
+            },
+          },
         },
         _count: {
           select: { deals: true },
@@ -79,6 +89,11 @@ export class PipelinesService {
       include: {
         stages: {
           orderBy: { order: 'asc' },
+          include: {
+            _count: {
+              select: { deals: true },
+            },
+          },
         },
         _count: {
           select: { deals: true },
@@ -203,6 +218,11 @@ export class PipelinesService {
         probability: dto.probability ?? 0,
         color: dto.color ?? '#6B7280',
       },
+      include: {
+        _count: {
+          select: { deals: true },
+        },
+      },
     });
   }
 
@@ -229,6 +249,11 @@ export class PipelinesService {
         ...(dto.order !== undefined && { order: dto.order }),
         ...(dto.probability !== undefined && { probability: dto.probability }),
         ...(dto.color && { color: dto.color }),
+      },
+      include: {
+        _count: {
+          select: { deals: true },
+        },
       },
     });
   }
