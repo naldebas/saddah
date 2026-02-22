@@ -97,7 +97,19 @@ export class PipelinesController {
     return this.pipelinesService.remove(tenantId, id);
   }
 
-  // Stage management
+  // Stage management - IMPORTANT: reorder must come before :stageId routes
+  @Patch(':id/stages/reorder')
+  @RequirePermission('deals.edit')
+  @ApiOperation({ summary: 'إعادة ترتيب المراحل' })
+  @ApiResponse({ status: 200, description: 'تم إعادة ترتيب المراحل بنجاح' })
+  reorderStages(
+    @CurrentUser('tenantId') tenantId: string,
+    @Param('id', ParseUUIDPipe) pipelineId: string,
+    @Body() stageOrders: { id: string; order: number }[],
+  ) {
+    return this.pipelinesService.reorderStages(tenantId, pipelineId, stageOrders);
+  }
+
   @Post(':id/stages')
   @RequirePermission('deals.edit')
   @ApiOperation({ summary: 'إضافة مرحلة جديدة' })
@@ -133,17 +145,5 @@ export class PipelinesController {
     @Param('stageId', ParseUUIDPipe) stageId: string,
   ) {
     return this.pipelinesService.removeStage(tenantId, pipelineId, stageId);
-  }
-
-  @Patch(':id/stages/reorder')
-  @RequirePermission('deals.edit')
-  @ApiOperation({ summary: 'إعادة ترتيب المراحل' })
-  @ApiResponse({ status: 200, description: 'تم إعادة ترتيب المراحل بنجاح' })
-  reorderStages(
-    @CurrentUser('tenantId') tenantId: string,
-    @Param('id', ParseUUIDPipe) pipelineId: string,
-    @Body() stageOrders: { id: string; order: number }[],
-  ) {
-    return this.pipelinesService.reorderStages(tenantId, pipelineId, stageOrders);
   }
 }

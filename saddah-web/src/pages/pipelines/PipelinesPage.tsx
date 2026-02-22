@@ -273,9 +273,15 @@ export function PipelinesPage() {
   const handleAddStage = async () => {
     if (!selectedPipeline || !newStageName.trim()) return;
 
+    // Validate minimum length
+    if (newStageName.trim().length < 2) {
+      toast.error('اسم المرحلة يجب أن يكون حرفين على الأقل');
+      return;
+    }
+
     try {
       await pipelinesApi.createStage(selectedPipeline.id, {
-        name: newStageName,
+        name: newStageName.trim(),
         color: newStageColor,
         probability: 50,
       });
@@ -284,26 +290,34 @@ export function PipelinesPage() {
       setNewStageColor(stageColors[0]);
       setIsAddingStage(false);
       fetchPipelines();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add stage:', error);
-      toast.error('فشل في إضافة المرحلة');
+      const message = error.response?.data?.message || 'فشل في إضافة المرحلة';
+      toast.error(Array.isArray(message) ? message[0] : message);
     }
   };
 
   const handleEditStage = async (stage: PipelineStage) => {
     if (!selectedPipeline || !editingStageData.name.trim()) return;
 
+    // Validate minimum length
+    if (editingStageData.name.trim().length < 2) {
+      toast.error('اسم المرحلة يجب أن يكون حرفين على الأقل');
+      return;
+    }
+
     try {
       await pipelinesApi.updateStage(selectedPipeline.id, stage.id, {
-        name: editingStageData.name,
+        name: editingStageData.name.trim(),
         color: editingStageData.color,
       });
       toast.success('تم تحديث المرحلة بنجاح');
       setEditingStageId(null);
       fetchPipelines();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update stage:', error);
-      toast.error('فشل في تحديث المرحلة');
+      const message = error.response?.data?.message || 'فشل في تحديث المرحلة';
+      toast.error(Array.isArray(message) ? message[0] : message);
     }
   };
 
