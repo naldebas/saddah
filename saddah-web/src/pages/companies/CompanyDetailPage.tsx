@@ -30,7 +30,7 @@ import { companiesApi, type Company } from '@/services/companies.api';
 import { contactsApi, type Contact } from '@/services/contacts.api';
 import { dealsApi, type Deal } from '@/services/deals.api';
 import { EditCompanyModal } from './EditCompanyModal';
-import { CreateContactModal } from '../contacts/CreateContactModal';
+import { LinkContactModal } from './LinkContactModal';
 import { CreateDealModal } from '../deals/CreateDealModal';
 
 const sizeLabels: Record<string, string> = {
@@ -419,11 +419,12 @@ export function CompanyDetailPage() {
         }}
       />
 
-      {/* Create Contact Modal */}
-      <CreateContactModal
+      {/* Link Contact Modal */}
+      <LinkContactModal
         isOpen={isContactModalOpen}
         onClose={() => setIsContactModalOpen(false)}
-        defaultCompanyId={id}
+        companyId={id || ''}
+        companyName={company.name}
         onSuccess={() => {
           setIsContactModalOpen(false);
           // Refresh contacts list
@@ -432,7 +433,7 @@ export function CompanyDetailPage() {
               setContacts(data.data.filter((c) => c.companyId === id));
             });
           }
-          toast.success('تمت إضافة جهة الاتصال بنجاح');
+          toast.success('تم ربط جهة الاتصال بالشركة بنجاح');
         }}
       />
 
