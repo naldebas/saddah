@@ -6,6 +6,7 @@ interface CreateContactModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  defaultCompanyId?: string;
 }
 
 const sources = [
@@ -21,6 +22,7 @@ export function CreateContactModal({
   isOpen,
   onClose,
   onSuccess,
+  defaultCompanyId,
 }: CreateContactModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -32,6 +34,7 @@ export function CreateContactModal({
     whatsapp: '',
     title: '',
     source: 'manual',
+    companyId: defaultCompanyId,
   });
 
   const handleChange = (

@@ -30,6 +30,8 @@ import { companiesApi, type Company } from '@/services/companies.api';
 import { contactsApi, type Contact } from '@/services/contacts.api';
 import { dealsApi, type Deal } from '@/services/deals.api';
 import { EditCompanyModal } from './EditCompanyModal';
+import { CreateContactModal } from '../contacts/CreateContactModal';
+import { CreateDealModal } from '../deals/CreateDealModal';
 
 const sizeLabels: Record<string, string> = {
   small: 'صغيرة',
@@ -55,6 +57,8 @@ export function CompanyDetailPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isDealModalOpen, setIsDealModalOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -299,7 +303,7 @@ export function CompanyDetailPage() {
               <TabPanel value="contacts" className="px-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900">جهات الاتصال</h3>
-                  <Button size="sm" onClick={() => navigate('/contacts')}>
+                  <Button size="sm" onClick={() => setIsContactModalOpen(true)}>
                     <Plus className="h-4 w-4" />
                     إضافة جهة اتصال
                   </Button>
@@ -351,7 +355,7 @@ export function CompanyDetailPage() {
               <TabPanel value="deals" className="px-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900">الصفقات</h3>
-                  <Button size="sm" onClick={() => navigate('/deals')}>
+                  <Button size="sm" onClick={() => setIsDealModalOpen(true)}>
                     <Plus className="h-4 w-4" />
                     إضافة صفقة
                   </Button>
@@ -412,6 +416,40 @@ export function CompanyDetailPage() {
           setCompany(updatedCompany);
           setIsEditModalOpen(false);
           toast.success('تم تحديث الشركة بنجاح');
+        }}
+      />
+
+      {/* Create Contact Modal */}
+      <CreateContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        defaultCompanyId={id}
+        onSuccess={() => {
+          setIsContactModalOpen(false);
+          // Refresh contacts list
+          if (id) {
+            contactsApi.getAll({ limit: 50 }).then((data) => {
+              setContacts(data.data.filter((c) => c.companyId === id));
+            });
+          }
+          toast.success('تمت إضافة جهة الاتصال بنجاح');
+        }}
+      />
+
+      {/* Create Deal Modal */}
+      <CreateDealModal
+        isOpen={isDealModalOpen}
+        onClose={() => setIsDealModalOpen(false)}
+        defaultCompanyId={id}
+        onSuccess={() => {
+          setIsDealModalOpen(false);
+          // Refresh deals list
+          if (id) {
+            dealsApi.getAll({ companyId: id, limit: 50 }).then((data) => {
+              setDeals(data.data);
+            });
+          }
+          toast.success('تمت إضافة الصفقة بنجاح');
         }}
       />
 

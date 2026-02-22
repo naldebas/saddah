@@ -10,6 +10,8 @@ interface CreateDealModalProps {
   onSuccess: () => void;
   defaultPipelineId?: string;
   defaultStageId?: string;
+  defaultContactId?: string;
+  defaultCompanyId?: string;
 }
 
 export function CreateDealModal({
@@ -18,6 +20,8 @@ export function CreateDealModal({
   onSuccess,
   defaultPipelineId,
   defaultStageId,
+  defaultContactId,
+  defaultCompanyId,
 }: CreateDealModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,8 +34,8 @@ export function CreateDealModal({
     currency: 'SAR',
     pipelineId: defaultPipelineId || '',
     stageId: defaultStageId || '',
-    contactId: '',
-    companyId: '',
+    contactId: defaultContactId || '',
+    companyId: defaultCompanyId || '',
     expectedCloseDate: '',
   });
 
@@ -68,8 +72,15 @@ export function CreateDealModal({
 
     if (isOpen) {
       fetchData();
+      // Set default contact/company if provided
+      if (defaultContactId) {
+        setFormData(prev => ({ ...prev, contactId: defaultContactId }));
+      }
+      if (defaultCompanyId) {
+        setFormData(prev => ({ ...prev, companyId: defaultCompanyId }));
+      }
     }
-  }, [isOpen, defaultPipelineId, defaultStageId]);
+  }, [isOpen, defaultPipelineId, defaultStageId, defaultContactId, defaultCompanyId]);
 
   const selectedPipeline = pipelines.find(p => p.id === formData.pipelineId);
 
@@ -136,8 +147,8 @@ export function CreateDealModal({
         currency: 'SAR',
         pipelineId: defaultPipelineId || '',
         stageId: defaultStageId || '',
-        contactId: '',
-        companyId: '',
+        contactId: defaultContactId || '',
+        companyId: defaultCompanyId || '',
         expectedCloseDate: '',
       });
     } catch (error: unknown) {
