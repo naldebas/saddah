@@ -6,9 +6,11 @@ import {
   IsArray,
   ValidateNested,
   IsNumber,
+  IsInt,
   Min,
   Max,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -20,21 +22,21 @@ export class CreatePipelineStageDto {
   name: string;
 
   @ApiPropertyOptional({ example: 1, description: 'ترتيب المرحلة (يتم حسابه تلقائياً إذا لم يُحدد)' })
-  @IsNumber()
+  @ValidateIf((o) => o.order !== undefined && o.order !== null)
+  @IsInt()
   @Min(0)
-  @IsOptional()
   order?: number;
 
   @ApiPropertyOptional({ example: 20, description: 'نسبة الاحتمالية (0-100)' })
-  @IsNumber()
+  @ValidateIf((o) => o.probability !== undefined && o.probability !== null)
+  @IsInt()
   @Min(0)
   @Max(100)
-  @IsOptional()
   probability?: number;
 
   @ApiPropertyOptional({ example: '#10B981', description: 'لون المرحلة' })
-  @IsString()
   @IsOptional()
+  @IsString()
   color?: string;
 }
 
