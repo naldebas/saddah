@@ -39,9 +39,9 @@ export class PipelinesService {
         name: dto.name,
         isDefault: dto.isDefault || false,
         stages: {
-          create: stages.map((stage) => ({
+          create: stages.map((stage, index) => ({
             name: stage.name,
-            order: stage.order,
+            order: stage.order ?? index,
             probability: stage.probability ?? 0,
             color: stage.color ?? '#6B7280',
           })),
@@ -184,11 +184,22 @@ export class PipelinesService {
   async addStage(tenantId: string, pipelineId: string, dto: CreatePipelineStageDto) {
     await this.findOne(tenantId, pipelineId);
 
+    // Auto-calculate order if not provided
+    let order = dto.order;
+    if (order === undefined) {
+      const maxOrderStage = await this.prisma.pipelineStage.findFirst({
+        where: { pipelineId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+      order = (maxOrderStage?.order ?? -1) + 1;
+    }
+
     return this.prisma.pipelineStage.create({
       data: {
         pipelineId,
         name: dto.name,
-        order: dto.order,
+        order,
         probability: dto.probability ?? 0,
         color: dto.color ?? '#6B7280',
       },

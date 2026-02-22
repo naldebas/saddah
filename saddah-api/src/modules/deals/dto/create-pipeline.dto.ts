@@ -19,10 +19,11 @@ export class CreatePipelineStageDto {
   @MinLength(2)
   name: string;
 
-  @ApiProperty({ example: 1, description: 'ترتيب المرحلة' })
+  @ApiPropertyOptional({ example: 1, description: 'ترتيب المرحلة (يتم حسابه تلقائياً إذا لم يُحدد)' })
   @IsNumber()
   @Min(0)
-  order: number;
+  @IsOptional()
+  order?: number;
 
   @ApiPropertyOptional({ example: 20, description: 'نسبة الاحتمالية (0-100)' })
   @IsNumber()
