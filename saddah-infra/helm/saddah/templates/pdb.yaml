@@ -1,0 +1,39 @@
+{{- if and .Values.api.enabled .Values.api.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.api.name }}
+  namespace: {{ include "saddah.namespace" . }}
+  labels:
+    {{- include "saddah.api.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.api.pdb.minAvailable }}
+  minAvailable: {{ .Values.api.pdb.minAvailable }}
+  {{- end }}
+  {{- if .Values.api.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.api.pdb.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "saddah.api.selectorLabels" . | nindent 6 }}
+{{- end }}
+---
+{{- if and .Values.web.enabled .Values.web.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.web.name }}
+  namespace: {{ include "saddah.namespace" . }}
+  labels:
+    {{- include "saddah.web.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.web.pdb.minAvailable }}
+  minAvailable: {{ .Values.web.pdb.minAvailable }}
+  {{- end }}
+  {{- if .Values.web.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.web.pdb.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "saddah.web.selectorLabels" . | nindent 6 }}
+{{- end }}

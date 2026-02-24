@@ -207,6 +207,21 @@ resource "aws_eks_node_group" "main" {
   ]
 }
 
+# OIDC Provider for IRSA (IAM Roles for Service Accounts)
+data "tls_certificate" "eks" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+
+  tags = merge(local.common_tags, {
+    Name = "${local.cluster_name}-oidc"
+  })
+}
+
 # Outputs
 output "cluster_name" {
   value = aws_eks_cluster.main.name
@@ -222,4 +237,12 @@ output "cluster_certificate_authority" {
 
 output "cluster_security_group_id" {
   value = aws_security_group.cluster.id
+}
+
+output "oidc_provider_arn" {
+  value = aws_iam_openid_connect_provider.eks.arn
+}
+
+output "oidc_provider_url" {
+  value = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }

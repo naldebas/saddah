@@ -1,0 +1,37 @@
+{{- if .Values.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.api.name }}
+  namespace: {{ include "saddah.namespace" . }}
+  labels:
+    {{- include "saddah.api.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.api.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: {{ .Values.api.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "saddah.api.selectorLabels" . | nindent 4 }}
+{{- end }}
+---
+{{- if .Values.web.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.web.name }}
+  namespace: {{ include "saddah.namespace" . }}
+  labels:
+    {{- include "saddah.web.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.web.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.web.service.port }}
+      targetPort: {{ .Values.web.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "saddah.web.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -162,6 +162,22 @@ resource "aws_ecr_lifecycle_policy" "web" {
   })
 }
 
+# Monitoring Module
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  cluster_name      = module.eks.cluster_name
+  region            = "me-south-1"
+  namespace         = "saddah-dev"
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  log_retention_days = 14
+
+  tags = {
+    Project     = var.project
+    Environment = var.environment
+  }
+}
+
 # Outputs
 output "vpc_id" {
   value = module.vpc.vpc_id
@@ -190,4 +206,20 @@ output "ecr_api_url" {
 
 output "ecr_web_url" {
   value = aws_ecr_repository.web.repository_url
+}
+
+output "fluent_bit_role_arn" {
+  value = module.monitoring.fluent_bit_role_arn
+}
+
+output "cloudwatch_agent_role_arn" {
+  value = module.monitoring.cloudwatch_agent_role_arn
+}
+
+output "cloudwatch_dashboard" {
+  value = module.monitoring.dashboard_name
+}
+
+output "cloudwatch_sns_topic_arn" {
+  value = module.monitoring.sns_topic_arn
 }

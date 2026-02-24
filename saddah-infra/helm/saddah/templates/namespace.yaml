@@ -1,0 +1,21 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "saddah.namespace" . }}
+  labels:
+    {{- include "saddah.labels" . | nindent 4 }}
+{{- end }}
+---
+{{- if .Values.resourceQuota.enabled }}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ include "saddah.fullname" . }}-quota
+  namespace: {{ include "saddah.namespace" . }}
+  labels:
+    {{- include "saddah.labels" . | nindent 4 }}
+spec:
+  hard:
+    {{- toYaml .Values.resourceQuota.hard | nindent 4 }}
+{{- end }}

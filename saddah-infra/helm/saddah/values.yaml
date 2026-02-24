@@ -1,0 +1,239 @@
+# Default values for SADDAH Helm chart
+
+# Global settings
+global:
+  environment: dev
+  imageRegistry: ""  # e.g., 123456789.dkr.ecr.me-south-1.amazonaws.com
+  imagePullSecrets: []
+
+# Namespace
+namespace:
+  create: true
+  name: saddah
+
+# API Service
+api:
+  enabled: true
+  name: saddah-api
+
+  image:
+    repository: saddah-api
+    tag: latest
+    pullPolicy: Always
+
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # Health checks
+  livenessProbe:
+    path: /api/v1/health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+  readinessProbe:
+    path: /api/v1/health
+    initialDelaySeconds: 10
+    periodSeconds: 5
+
+  # Environment variables (non-sensitive)
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    API_PREFIX: api
+    API_VERSION: "1"
+    LOG_LEVEL: info
+    SWAGGER_ENABLED: "true"
+    WHATSAPP_PROVIDER: twilio
+    WHATSAPP_BOT_ENABLED: "true"
+
+  # ConfigMap data
+  configMap:
+    enabled: true
+    data: {}
+
+  # Pod annotations
+  podAnnotations: {}
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: saddah-api
+            topologyKey: kubernetes.io/hostname
+
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  # Secrets
+  secrets:
+    enabled: false
+    data: {}
+
+# Web Frontend
+web:
+  enabled: true
+  name: saddah-web
+
+  image:
+    repository: saddah-web
+    tag: latest
+    pullPolicy: Always
+
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  readinessProbe:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+  # Nginx config
+  nginx:
+    enabled: true
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# Ingress
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+  hosts:
+    api:
+      host: api.saddah.io
+      paths:
+        - path: /
+          pathType: Prefix
+    web:
+      host: app.saddah.io
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls:
+    enabled: true
+    certificateArn: ""  # AWS ACM certificate ARN
+
+# Secrets (use External Secrets in production)
+secrets:
+  create: false  # Set to true only for development
+  data:
+    DATABASE_URL: ""
+    REDIS_PASSWORD: ""
+    JWT_SECRET: ""
+    JWT_REFRESH_SECRET: ""
+    OPENAI_API_KEY: ""
+    TWILIO_ACCOUNT_SID: ""
+    TWILIO_AUTH_TOKEN: ""
+    TWILIO_WHATSAPP_NUMBER: ""
+
+# External Secrets (recommended for production)
+externalSecrets:
+  enabled: false
+  secretStore:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+  remoteRefs:
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: saddah/database
+        property: url
+
+# Redis connection
+redis:
+  host: ""
+  port: 6379
+
+# Network Policies
+networkPolicies:
+  enabled: true
+
+# Service Account
+serviceAccount:
+  create: true
+  name: saddah-api
+  annotations: {}
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Resource Quotas
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "50"

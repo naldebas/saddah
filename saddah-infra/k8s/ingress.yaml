@@ -1,0 +1,89 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: saddah-ingress
+  namespace: saddah
+  labels:
+    app.kubernetes.io/part-of: saddah
+  annotations:
+    # AWS ALB Ingress Controller annotations
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:me-south-1:${AWS_ACCOUNT_ID}:certificate/CHANGE_ME
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+    # Security groups
+    alb.ingress.kubernetes.io/security-groups: sg-CHANGE_ME
+    # WAF integration (optional)
+    # alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:me-south-1:${AWS_ACCOUNT_ID}:regional/webacl/saddah-waf/CHANGE_ME
+    # Tags for cost tracking
+    alb.ingress.kubernetes.io/tags: Environment=production,Project=saddah
+spec:
+  rules:
+    # API subdomain
+    - host: api.saddah.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: saddah-api
+                port:
+                  number: 80
+    # Web app subdomain
+    - host: app.saddah.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: saddah-web
+                port:
+                  number: 80
+---
+# Alternative: Ingress for development (without SSL)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: saddah-ingress-dev
+  namespace: saddah
+  labels:
+    app.kubernetes.io/part-of: saddah
+    environment: dev
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  rules:
+    - host: api-dev.saddah.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: saddah-api
+                port:
+                  number: 80
+    - host: app-dev.saddah.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: saddah-web
+                port:
+                  number: 80

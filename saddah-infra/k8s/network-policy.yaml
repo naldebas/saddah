@@ -1,0 +1,80 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: saddah
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-api
+  namespace: saddah
+spec:
+  podSelector:
+    matchLabels:
+      app: saddah-api
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from ALB/Ingress
+    - from: []
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-web
+  namespace: saddah
+spec:
+  podSelector:
+    matchLabels:
+      app: saddah-web
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from ALB/Ingress
+    - from: []
+      ports:
+        - protocol: TCP
+          port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-egress
+  namespace: saddah
+spec:
+  podSelector:
+    matchLabels:
+      app: saddah-api
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow PostgreSQL (RDS)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow Redis (ElastiCache)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow HTTPS (for external APIs: OpenAI, Twilio, etc.)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443

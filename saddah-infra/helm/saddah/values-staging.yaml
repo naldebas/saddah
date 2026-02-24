@@ -1,0 +1,100 @@
+# Staging environment values
+# Usage: helm install saddah . -f values.yaml -f values-staging.yaml
+
+global:
+  environment: staging
+  imageRegistry: ""  # Specify staging ECR registry
+
+namespace:
+  name: saddah-staging
+
+api:
+  replicaCount: 2
+
+  image:
+    tag: staging
+    pullPolicy: Always
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  env:
+    NODE_ENV: staging
+    LOG_LEVEL: info
+    SWAGGER_ENABLED: "true"
+
+web:
+  replicaCount: 2
+
+  image:
+    tag: staging
+    pullPolicy: Always
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+ingress:
+  enabled: true
+  hosts:
+    api:
+      host: api.staging.saddah.io
+    web:
+      host: app.staging.saddah.io
+  tls:
+    enabled: true
+    certificateArn: ""  # Staging ACM certificate ARN
+
+externalSecrets:
+  enabled: true
+  secretStore:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  refreshInterval: 1h
+
+networkPolicies:
+  enabled: true
+
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "20"
+
+serviceAccount:
+  create: true
+  name: saddah-api-staging
+  annotations:
+    eks.amazonaws.com/role-arn: ""  # Staging IAM role ARN

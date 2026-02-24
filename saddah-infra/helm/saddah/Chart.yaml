@@ -1,0 +1,27 @@
+apiVersion: v2
+name: saddah
+description: SADDAH CRM - AI-Powered CRM for Saudi Real Estate
+
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - crm
+  - real-estate
+  - saudi-arabia
+  - ai
+  - whatsapp
+
+home: https://saddah.io
+sources:
+  - https://github.com/naldebas/saddah
+
+maintainers:
+  - name: SADDAH Team
+    email: tech@saddah.io
+
+dependencies: []
+
+annotations:
+  category: CRM

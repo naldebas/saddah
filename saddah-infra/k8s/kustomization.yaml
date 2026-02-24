@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: saddah
+
+# Shared resources
+resources:
+  - namespace.yaml
+  - ingress.yaml
+  - network-policy.yaml
+  - api/
+  - web/
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/part-of: saddah
+  app.kubernetes.io/managed-by: kustomize
+
+# Environment-specific configurations can be managed via overlays
+# See: k8s/overlays/dev/, k8s/overlays/staging/, k8s/overlays/prod/

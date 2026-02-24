@@ -1,0 +1,290 @@
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      api_tag:
+        description: 'API image tag (leave empty to use commit SHA)'
+        required: false
+        type: string
+      web_tag:
+        description: 'Web image tag (leave empty to use commit SHA)'
+        required: false
+        type: string
+
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'saddah-api/**'
+      - 'saddah-web/**'
+      - 'saddah-infra/helm/**'
+      - 'saddah-infra/k8s/**'
+
+env:
+  AWS_REGION: me-south-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.me-south-1.amazonaws.com
+  EKS_CLUSTER_NAME: saddah-eks
+  HELM_VERSION: '3.13.0'
+
+jobs:
+  # Determine what changed and what to deploy
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.changes.outputs.api }}
+      web: ${{ steps.changes.outputs.web }}
+      infra: ${{ steps.changes.outputs.infra }}
+      environment: ${{ steps.env.outputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            api:
+              - 'saddah-api/**'
+            web:
+              - 'saddah-web/**'
+            infra:
+              - 'saddah-infra/helm/**'
+              - 'saddah-infra/k8s/**'
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
+  # Build and push API image
+  build-api:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch'
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ECR_REGISTRY }}/saddah-api
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=${{ needs.changes.outputs.environment }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./saddah-api
+          file: ./saddah-api/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+  # Build and push Web image
+  build-web:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch'
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ECR_REGISTRY }}/saddah-web
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=${{ needs.changes.outputs.environment }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./saddah-web
+          file: ./saddah-web/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=https://api.${{ needs.changes.outputs.environment == 'prod' && 'saddah.io' || format('{0}.saddah.io', needs.changes.outputs.environment) }}
+
+  # Deploy to Kubernetes
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [changes, build-api, build-web]
+    if: always() && (needs.build-api.result == 'success' || needs.build-web.result == 'success' || needs.changes.outputs.infra == 'true')
+    environment: ${{ needs.changes.outputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Set image tags
+        id: tags
+        run: |
+          # Use input tags if provided, otherwise use commit SHA
+          if [ -n "${{ inputs.api_tag }}" ]; then
+            echo "api_tag=${{ inputs.api_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "api_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+          if [ -n "${{ inputs.web_tag }}" ]; then
+            echo "web_tag=${{ inputs.web_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "web_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy with Helm
+        working-directory: saddah-infra/helm/saddah
+        run: |
+          ENV="${{ needs.changes.outputs.environment }}"
+          NAMESPACE="saddah-${ENV}"
+
+          # Create namespace if it doesn't exist
+          kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+
+          # Deploy using Helm
+          helm upgrade --install saddah . \
+            -n ${NAMESPACE} \
+            -f values.yaml \
+            -f values-${ENV}.yaml \
+            --set global.imageRegistry=${{ env.ECR_REGISTRY }} \
+            --set api.image.tag=${{ steps.tags.outputs.api_tag }} \
+            --set web.image.tag=${{ steps.tags.outputs.web_tag }} \
+            --set ingress.tls.certificateArn=${{ secrets.ACM_CERTIFICATE_ARN }} \
+            --wait \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          ENV="${{ needs.changes.outputs.environment }}"
+          NAMESPACE="saddah-${ENV}"
+
+          echo "Checking API deployment..."
+          kubectl rollout status deployment/saddah-api -n ${NAMESPACE} --timeout=5m
+
+          echo "Checking Web deployment..."
+          kubectl rollout status deployment/saddah-web -n ${NAMESPACE} --timeout=5m
+
+          echo "Deployment successful!"
+          kubectl get pods -n ${NAMESPACE}
+
+      - name: Post deployment summary
+        run: |
+          ENV="${{ needs.changes.outputs.environment }}"
+          NAMESPACE="saddah-${ENV}"
+
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${ENV}" >> $GITHUB_STEP_SUMMARY
+          echo "**Namespace:** ${NAMESPACE}" >> $GITHUB_STEP_SUMMARY
+          echo "**API Tag:** ${{ steps.tags.outputs.api_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Web Tag:** ${{ steps.tags.outputs.web_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n ${NAMESPACE} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # Notify on failure
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: failure()
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "❌ Deployment Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deployment Failed*\n\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nWorkflow: ${{ github.workflow }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,0 +1,67 @@
+SADDAH CRM has been deployed!
+
+{{- if .Values.api.enabled }}
+
+=== API Service ===
+Name: {{ .Values.api.name }}
+Replicas: {{ .Values.api.replicaCount }}
+{{- if .Values.api.autoscaling.enabled }}
+Autoscaling: {{ .Values.api.autoscaling.minReplicas }}-{{ .Values.api.autoscaling.maxReplicas }} replicas
+{{- end }}
+
+To check API status:
+  kubectl get pods -n {{ include "saddah.namespace" . }} -l app.kubernetes.io/component=api
+
+{{- end }}
+
+{{- if .Values.web.enabled }}
+
+=== Web Service ===
+Name: {{ .Values.web.name }}
+Replicas: {{ .Values.web.replicaCount }}
+{{- if .Values.web.autoscaling.enabled }}
+Autoscaling: {{ .Values.web.autoscaling.minReplicas }}-{{ .Values.web.autoscaling.maxReplicas }} replicas
+{{- end }}
+
+To check Web status:
+  kubectl get pods -n {{ include "saddah.namespace" . }} -l app.kubernetes.io/component=web
+
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+=== Ingress ===
+{{- if .Values.api.enabled }}
+API URL: https://{{ .Values.ingress.hosts.api.host }}
+{{- end }}
+{{- if .Values.web.enabled }}
+Web URL: https://{{ .Values.ingress.hosts.web.host }}
+{{- end }}
+
+To check ingress status:
+  kubectl get ingress -n {{ include "saddah.namespace" . }}
+
+{{- end }}
+
+=== Useful Commands ===
+
+View all resources:
+  kubectl get all -n {{ include "saddah.namespace" . }}
+
+View logs:
+  kubectl logs -n {{ include "saddah.namespace" . }} -l app.kubernetes.io/component=api -f
+  kubectl logs -n {{ include "saddah.namespace" . }} -l app.kubernetes.io/component=web -f
+
+Port forward for local access:
+  kubectl port-forward -n {{ include "saddah.namespace" . }} svc/{{ .Values.api.name }} 3000:{{ .Values.api.service.port }}
+  kubectl port-forward -n {{ include "saddah.namespace" . }} svc/{{ .Values.web.name }} 8080:{{ .Values.web.service.port }}
+
+=== Health Checks ===
+
+API Health:
+  kubectl exec -n {{ include "saddah.namespace" . }} deploy/{{ .Values.api.name }} -- curl -s localhost:{{ .Values.api.service.targetPort }}/api/v1/health
+
+Web Health:
+  kubectl exec -n {{ include "saddah.namespace" . }} deploy/{{ .Values.web.name }} -- curl -s localhost:{{ .Values.web.service.targetPort }}/health
+
+For more information, visit: https://github.com/saddah/saddah-crm

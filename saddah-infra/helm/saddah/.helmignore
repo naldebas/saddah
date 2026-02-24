@@ -1,0 +1,22 @@
+# Patterns to ignore when building packages
+.DS_Store
+.git/
+.gitignore
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.orig
+
+# Testing files
+tests/
+*.test.yaml
+
+# Documentation
+*.md
+!templates/NOTES.txt
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+Jenkinsfile

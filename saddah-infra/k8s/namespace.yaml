@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: saddah
+  labels:
+    name: saddah
+    app.kubernetes.io/part-of: saddah
+    app.kubernetes.io/managed-by: kustomize
+---
+# Resource quota for the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: saddah-quota
+  namespace: saddah
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    pods: "50"
+    services: "10"
+    secrets: "20"
+    configmaps: "20"
+---
+# Limit range for default resource limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: saddah-limits
+  namespace: saddah
+spec:
+  limits:
+    - default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      type: Container

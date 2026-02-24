@@ -1,0 +1,168 @@
+# Production environment values
+# Usage: helm install saddah . -f values.yaml -f values-prod.yaml
+
+global:
+  environment: production
+  imageRegistry: ""  # Production ECR registry (e.g., 123456789.dkr.ecr.me-south-1.amazonaws.com)
+
+namespace:
+  name: saddah
+
+api:
+  replicaCount: 3
+
+  image:
+    tag: ""  # Set via CI/CD with commit SHA
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  pdb:
+    enabled: true
+    minAvailable: 2
+
+  env:
+    NODE_ENV: production
+    LOG_LEVEL: warn
+    SWAGGER_ENABLED: "false"
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: saddah-api
+          topologyKey: topology.kubernetes.io/zone
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                  - application
+
+web:
+  replicaCount: 3
+
+  image:
+    tag: ""  # Set via CI/CD with commit SHA
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+  pdb:
+    enabled: true
+    minAvailable: 2
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app: saddah-web
+          topologyKey: topology.kubernetes.io/zone
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /api/v1/health
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/wafv2-acl-arn: ""  # Production WAF ARN
+  hosts:
+    api:
+      host: api.saddah.io
+    web:
+      host: app.saddah.io
+  tls:
+    enabled: true
+    certificateArn: ""  # Production ACM certificate ARN
+
+externalSecrets:
+  enabled: true
+  secretStore:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  refreshInterval: 30m
+  remoteRefs:
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: saddah/prod/database
+        property: url
+    - secretKey: REDIS_PASSWORD
+      remoteRef:
+        key: saddah/prod/redis
+        property: password
+    - secretKey: JWT_SECRET
+      remoteRef:
+        key: saddah/prod/auth
+        property: jwt_secret
+    - secretKey: JWT_REFRESH_SECRET
+      remoteRef:
+        key: saddah/prod/auth
+        property: jwt_refresh_secret
+    - secretKey: OPENAI_API_KEY
+      remoteRef:
+        key: saddah/prod/openai
+        property: api_key
+    - secretKey: TWILIO_ACCOUNT_SID
+      remoteRef:
+        key: saddah/prod/twilio
+        property: account_sid
+    - secretKey: TWILIO_AUTH_TOKEN
+      remoteRef:
+        key: saddah/prod/twilio
+        property: auth_token
+    - secretKey: TWILIO_WHATSAPP_NUMBER
+      remoteRef:
+        key: saddah/prod/twilio
+        property: whatsapp_number
+
+networkPolicies:
+  enabled: true
+
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    pods: "100"
+
+serviceAccount:
+  create: true
+  name: saddah-api
+  annotations:
+    eks.amazonaws.com/role-arn: ""  # Production IAM role ARN for IRSA

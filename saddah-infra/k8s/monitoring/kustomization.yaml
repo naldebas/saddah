@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: amazon-cloudwatch
+
+resources:
+  - namespace.yaml
+  - fluent-bit-cluster-info.yaml
+  - fluent-bit-configmap.yaml
+  - fluent-bit-daemonset.yaml
+  - cloudwatch-agent-configmap.yaml
+  - cloudwatch-agent-daemonset.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: saddah
+  app.kubernetes.io/managed-by: kustomize

@@ -1,0 +1,76 @@
+# Development environment values
+# Usage: helm install saddah . -f values.yaml -f values-dev.yaml
+
+global:
+  environment: dev
+  imageRegistry: ""  # Use local images or specify dev registry
+
+namespace:
+  name: saddah-dev
+
+api:
+  replicaCount: 1
+
+  image:
+    tag: dev
+    pullPolicy: Always
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  autoscaling:
+    enabled: false
+
+  pdb:
+    enabled: false
+
+  env:
+    NODE_ENV: development
+    LOG_LEVEL: debug
+    SWAGGER_ENABLED: "true"
+
+web:
+  replicaCount: 1
+
+  image:
+    tag: dev
+    pullPolicy: Always
+
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+  autoscaling:
+    enabled: false
+
+  pdb:
+    enabled: false
+
+ingress:
+  enabled: true
+  hosts:
+    api:
+      host: api.dev.saddah.io
+    web:
+      host: app.dev.saddah.io
+  tls:
+    enabled: false
+
+networkPolicies:
+  enabled: false
+
+resourceQuota:
+  enabled: false
+
+serviceAccount:
+  create: true
+  name: saddah-api-dev

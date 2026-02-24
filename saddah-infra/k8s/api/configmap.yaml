@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saddah-api-config
+  namespace: saddah
+  labels:
+    app: saddah-api
+    component: backend
+data:
+  # Application settings
+  NODE_ENV: "production"
+  PORT: "3000"
+
+  # API settings
+  API_PREFIX: "api"
+  API_VERSION: "1"
+
+  # CORS settings
+  CORS_ORIGIN: "https://app.saddah.io"
+
+  # Redis settings (host from AWS ElastiCache)
+  REDIS_HOST: "saddah-redis.xxxxx.me-south-1.cache.amazonaws.com"
+  REDIS_PORT: "6379"
+
+  # Swagger settings
+  SWAGGER_ENABLED: "true"
+  SWAGGER_PATH: "docs"
+
+  # Logging
+  LOG_LEVEL: "info"
+
+  # WhatsApp settings
+  WHATSAPP_PROVIDER: "twilio"
+  WHATSAPP_BOT_ENABLED: "true"
+  WHATSAPP_DAILY_LIMIT: "1000"
+  WHATSAPP_MONTHLY_LIMIT: "10000"
+
+  # Rate limiting
+  THROTTLE_TTL: "60"
+  THROTTLE_LIMIT: "100"
+
+  # JWT settings (durations only, secrets in Secret)
+  JWT_ACCESS_EXPIRATION: "1h"
+  JWT_REFRESH_EXPIRATION: "7d"
