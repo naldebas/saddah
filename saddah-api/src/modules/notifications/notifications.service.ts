@@ -348,6 +348,28 @@ export class NotificationsService {
   }
 
   /**
+   * Notify user about a failed WhatsApp message
+   */
+  async notifyWhatsAppMessageFailed(
+    tenantId: string,
+    userId: string,
+    recipientPhone: string,
+    errorMessage: string,
+    conversationId?: string,
+    messageId?: string,
+    canRetry?: boolean,
+  ): Promise<Notification> {
+    return this.create({
+      tenantId,
+      userId,
+      type: 'whatsapp_message_failed',
+      title: 'فشل إرسال رسالة واتساب',
+      message: `فشل إرسال الرسالة إلى ${recipientPhone}: ${errorMessage}`,
+      data: { recipientPhone, errorMessage, conversationId, messageId, canRetry },
+    });
+  }
+
+  /**
    * Bulk notify multiple users
    */
   async notifyMultipleUsers(

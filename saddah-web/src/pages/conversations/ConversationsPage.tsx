@@ -24,10 +24,52 @@ import {
   Clock,
   Tag,
   ChevronLeft,
+  UserPlus,
+  Calendar,
+  LayoutTemplate,
+  Hand,
+  Target,
+  DollarSign,
+  Home,
+  AlertCircle,
+  CheckCircle,
+  CircleDot,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+
+// Qualification states matching backend state machine
+type QualificationState =
+  | 'initial'
+  | 'ask_name'
+  | 'ask_property_type'
+  | 'ask_location'
+  | 'ask_budget'
+  | 'ask_timeline'
+  | 'ask_financing'
+  | 'qualified'
+  | 'offer_appointment'
+  | 'schedule_appointment'
+  | 'human_handoff';
+
+interface QualificationData {
+  name?: string;
+  propertyType?: 'villa' | 'apartment' | 'land' | 'duplex' | 'townhouse';
+  location?: {
+    city?: string;
+    neighborhoods?: string[];
+  };
+  budget?: {
+    min?: number;
+    max?: number;
+    currency?: string;
+  };
+  timeline?: 'immediate' | 'within_month' | 'within_3_months' | 'within_6_months' | 'within_year';
+  needsFinancing?: boolean;
+  appointmentDate?: string;
+  appointmentTime?: string;
+}
 
 interface Conversation {
   id: string;
@@ -43,6 +85,11 @@ interface Conversation {
   isOnline?: boolean;
   avatar?: string;
   tags?: string[];
+  // WhatsApp bot fields
+  botStatus?: 'bot' | 'pending' | 'active' | 'closed';
+  qualificationState?: QualificationState;
+  qualificationData?: QualificationData;
+  qualificationScore?: number;
 }
 
 interface Message {
@@ -66,6 +113,48 @@ const aiSuggestions = [
   'العميل يبحث عن تمويل عقاري - يمكنك ذكر شراكتنا مع البنوك.',
 ];
 
+// WhatsApp approved template messages
+const templateMessages = [
+  { id: '1', name: 'welcome_lead', displayName: 'ترحيب بالعميل الجديد', category: 'MARKETING' },
+  { id: '2', name: 'follow_up', displayName: 'متابعة العميل', category: 'MARKETING' },
+  { id: '3', name: 'appointment_reminder', displayName: 'تذكير بالموعد', category: 'UTILITY' },
+  { id: '4', name: 'property_listing', displayName: 'عرض عقار جديد', category: 'MARKETING' },
+  { id: '5', name: 'financing_info', displayName: 'معلومات التمويل العقاري', category: 'UTILITY' },
+];
+
+// State display names in Arabic
+const stateDisplayNames: Record<QualificationState, string> = {
+  initial: 'بداية المحادثة',
+  ask_name: 'طلب الاسم',
+  ask_property_type: 'نوع العقار',
+  ask_location: 'الموقع',
+  ask_budget: 'الميزانية',
+  ask_timeline: 'الجدول الزمني',
+  ask_financing: 'التمويل',
+  qualified: 'مؤهل',
+  offer_appointment: 'عرض موعد',
+  schedule_appointment: 'جدولة موعد',
+  human_handoff: 'تحويل لموظف',
+};
+
+// Property type display names
+const propertyTypeNames: Record<string, string> = {
+  villa: 'فيلا',
+  apartment: 'شقة',
+  land: 'أرض',
+  duplex: 'دوبلكس',
+  townhouse: 'تاون هاوس',
+};
+
+// Timeline display names
+const timelineNames: Record<string, string> = {
+  immediate: 'فوري',
+  within_month: 'خلال شهر',
+  within_3_months: 'خلال 3 شهور',
+  within_6_months: 'خلال 6 شهور',
+  within_year: 'خلال سنة',
+};
+
 export function ConversationsPage() {
   const { t } = useTranslation();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -73,6 +162,7 @@ export function ConversationsPage() {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showAiSuggestions, setShowAiSuggestions] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const conversations: Conversation[] = [
@@ -89,6 +179,17 @@ export function ConversationsPage() {
       status: 'delivered',
       isOnline: true,
       tags: ['عميل VIP', 'مهتم بالفلل'],
+      botStatus: 'active',
+      qualificationState: 'qualified',
+      qualificationData: {
+        name: 'محمد العتيبي',
+        propertyType: 'villa',
+        location: { city: 'الرياض', neighborhoods: ['النرجس', 'الياسمين'] },
+        budget: { min: 1800000, max: 2200000, currency: 'SAR' },
+        timeline: 'within_3_months',
+        needsFinancing: false,
+      },
+      qualificationScore: 85,
     },
     {
       id: '2',
@@ -101,6 +202,15 @@ export function ConversationsPage() {
       status: 'read',
       isOnline: false,
       tags: ['شقق'],
+      botStatus: 'bot',
+      qualificationState: 'ask_timeline',
+      qualificationData: {
+        name: 'فاطمة الشهري',
+        propertyType: 'apartment',
+        location: { city: 'جدة' },
+        budget: { min: 500000, max: 800000, currency: 'SAR' },
+      },
+      qualificationScore: 55,
     },
     {
       id: '3',
@@ -113,6 +223,17 @@ export function ConversationsPage() {
       channel: 'whatsapp',
       status: 'read',
       isOnline: true,
+      botStatus: 'closed',
+      qualificationState: 'qualified',
+      qualificationData: {
+        name: 'عبدالله القحطاني',
+        propertyType: 'land',
+        location: { city: 'الرياض', neighborhoods: ['العقيق'] },
+        budget: { min: 3000000, max: 5000000, currency: 'SAR' },
+        timeline: 'within_6_months',
+        needsFinancing: true,
+      },
+      qualificationScore: 90,
     },
     {
       id: '4',
@@ -125,6 +246,16 @@ export function ConversationsPage() {
       status: 'sent',
       isOnline: false,
       tags: ['تمويل عقاري'],
+      botStatus: 'bot',
+      qualificationState: 'ask_financing',
+      qualificationData: {
+        name: 'نورة المالكي',
+        propertyType: 'villa',
+        location: { city: 'الدمام' },
+        budget: { min: 1200000, max: 1500000, currency: 'SAR' },
+        timeline: 'within_month',
+      },
+      qualificationScore: 65,
     },
     {
       id: '5',
@@ -136,6 +267,13 @@ export function ConversationsPage() {
       channel: 'whatsapp',
       status: 'read',
       isOnline: false,
+      botStatus: 'pending',
+      qualificationState: 'human_handoff',
+      qualificationData: {
+        name: 'خالد الدوسري',
+        propertyType: 'duplex',
+      },
+      qualificationScore: 30,
     },
   ];
 
@@ -175,6 +313,70 @@ export function ConversationsPage() {
 
   const handleQuickReply = (reply: string) => {
     setMessage(reply);
+  };
+
+  const handleTakeover = () => {
+    // TODO: API call to take over from bot
+    console.log('Taking over conversation from bot');
+    // This would update the conversation status from 'bot' to 'active'
+  };
+
+  const handleSendTemplate = (templateId: string) => {
+    // TODO: API call to send template message
+    console.log('Sending template:', templateId);
+    setShowTemplateSelector(false);
+  };
+
+  const handleConvertToLead = () => {
+    // TODO: API call to convert to lead
+    console.log('Converting to lead');
+  };
+
+  const handleScheduleCallback = () => {
+    // TODO: Open scheduling modal
+    console.log('Scheduling callback');
+  };
+
+  const formatBudget = (budget?: { min?: number; max?: number; currency?: string }) => {
+    if (!budget) return '-';
+    const formatter = new Intl.NumberFormat('ar-SA');
+    const min = budget.min ? formatter.format(budget.min) : '';
+    const max = budget.max ? formatter.format(budget.max) : '';
+    const currency = budget.currency === 'SAR' ? 'ريال' : budget.currency || '';
+    if (min && max) return `${min} - ${max} ${currency}`;
+    if (max) return `${max} ${currency}`;
+    return '-';
+  };
+
+  const getScoreColor = (score?: number) => {
+    if (!score) return 'text-gray-400';
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    if (score >= 30) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  const getScoreBgColor = (score?: number) => {
+    if (!score) return 'bg-gray-100';
+    if (score >= 80) return 'bg-green-100';
+    if (score >= 60) return 'bg-yellow-100';
+    if (score >= 30) return 'bg-orange-100';
+    return 'bg-red-100';
+  };
+
+  const getBotStatusBadge = (botStatus?: string) => {
+    switch (botStatus) {
+      case 'bot':
+        return { label: 'البوت يتولى', color: 'bg-blue-100 text-blue-700', icon: Bot };
+      case 'pending':
+        return { label: 'ينتظر موظف', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle };
+      case 'active':
+        return { label: 'موظف يتولى', color: 'bg-green-100 text-green-700', icon: User };
+      case 'closed':
+        return { label: 'مغلقة', color: 'bg-gray-100 text-gray-700', icon: CheckCircle };
+      default:
+        return null;
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -284,15 +486,29 @@ export function ConversationsPage() {
                       )}
                     </div>
                   </div>
-                  {conv.tags && conv.tags.length > 0 && (
-                    <div className="flex gap-1 mt-2">
-                      {conv.tags.slice(0, 2).map((tag, idx) => (
-                        <span key={idx} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {/* Bot Status & Tags */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {conv.botStatus && getBotStatusBadge(conv.botStatus) && (
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full ${getBotStatusBadge(conv.botStatus)?.color}`}>
+                        {(() => {
+                          const badge = getBotStatusBadge(conv.botStatus);
+                          const Icon = badge?.icon;
+                          return Icon ? <Icon className="h-3 w-3" /> : null;
+                        })()}
+                        {getBotStatusBadge(conv.botStatus)?.label}
+                      </span>
+                    )}
+                    {conv.qualificationScore && (
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${getScoreBgColor(conv.qualificationScore)} ${getScoreColor(conv.qualificationScore)}`}>
+                        {conv.qualificationScore}%
+                      </span>
+                    )}
+                    {conv.tags && conv.tags.slice(0, 1).map((tag, idx) => (
+                      <span key={idx} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </button>
             ))}
@@ -315,13 +531,45 @@ export function ConversationsPage() {
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{selectedContact.contactName}</p>
-                    <p className={`text-xs ${selectedContact.isOnline ? 'text-green-500' : 'text-gray-400'}`}>
-                      {selectedContact.isOnline ? 'متصل الآن' : 'آخر ظهور منذ ساعة'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900">{selectedContact.contactName}</p>
+                      {/* Bot Status Badge */}
+                      {selectedContact.botStatus && getBotStatusBadge(selectedContact.botStatus) && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full ${getBotStatusBadge(selectedContact.botStatus)?.color}`}>
+                          {(() => {
+                            const badge = getBotStatusBadge(selectedContact.botStatus);
+                            const Icon = badge?.icon;
+                            return Icon ? <Icon className="h-3 w-3" /> : null;
+                          })()}
+                          {getBotStatusBadge(selectedContact.botStatus)?.label}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-xs ${selectedContact.isOnline ? 'text-green-500' : 'text-gray-400'}`}>
+                        {selectedContact.isOnline ? 'متصل الآن' : 'آخر ظهور منذ ساعة'}
+                      </p>
+                      {selectedContact.qualificationState && (
+                        <span className="text-xs text-gray-400">
+                          • {stateDisplayNames[selectedContact.qualificationState]}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Takeover Button - Show when bot is handling */}
+                  {selectedContact.botStatus === 'bot' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTakeover}
+                      className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                    >
+                      <Hand className="h-4 w-4 me-1" />
+                      تولي المحادثة
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm">
                     <Phone className="h-4 w-4" />
                   </Button>
@@ -393,6 +641,71 @@ export function ConversationsPage() {
                 ))}
                 <div ref={messagesEndRef} />
               </div>
+
+              {/* Quick Actions Bar */}
+              <div className="p-2 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleConvertToLead}
+                    className="text-xs"
+                  >
+                    <UserPlus className="h-3 w-3 me-1" />
+                    تحويل لعميل
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleScheduleCallback}
+                    className="text-xs"
+                  >
+                    <Calendar className="h-3 w-3 me-1" />
+                    جدولة اتصال
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+                    className={`text-xs ${showTemplateSelector ? 'bg-green-50 border-green-300' : ''}`}
+                  >
+                    <LayoutTemplate className="h-3 w-3 me-1" />
+                    قالب رسالة
+                  </Button>
+                </div>
+                {selectedContact.qualificationScore && (
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${getScoreBgColor(selectedContact.qualificationScore)}`}>
+                    <Target className="h-3 w-3" />
+                    <span className={`text-xs font-medium ${getScoreColor(selectedContact.qualificationScore)}`}>
+                      نقاط التأهيل: {selectedContact.qualificationScore}%
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Template Selector */}
+              {showTemplateSelector && (
+                <div className="p-3 border-t border-gray-100 bg-green-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-green-800">اختر قالب رسالة</p>
+                    <button onClick={() => setShowTemplateSelector(false)}>
+                      <X className="h-4 w-4 text-green-400 hover:text-green-600" />
+                    </button>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {templateMessages.map((template) => (
+                      <button
+                        key={template.id}
+                        onClick={() => handleSendTemplate(template.id)}
+                        className="flex-shrink-0 px-3 py-2 text-xs bg-white border border-green-200 rounded-lg text-green-700 hover:bg-green-100 hover:border-green-300 transition-colors"
+                      >
+                        <span className="block font-medium">{template.displayName}</span>
+                        <span className="block text-green-500 mt-0.5">{template.category}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Quick Replies */}
               <div className="p-3 border-t border-gray-100 bg-gray-50">
@@ -541,6 +854,130 @@ export function ConversationsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Qualification Data Section */}
+                {selectedContact.qualificationData && (
+                  <div className="mt-4 p-3 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-purple-800">بيانات التأهيل</h4>
+                      {selectedContact.qualificationScore && (
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${getScoreBgColor(selectedContact.qualificationScore)}`}>
+                          <span className={`text-sm font-bold ${getScoreColor(selectedContact.qualificationScore)}`}>
+                            {selectedContact.qualificationScore}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Current State */}
+                    {selectedContact.qualificationState && (
+                      <div className="flex items-center gap-2 p-2 bg-white rounded-lg mb-2">
+                        <CircleDot className="h-4 w-4 text-purple-500" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">المرحلة الحالية</p>
+                          <p className="text-sm font-medium text-purple-700">
+                            {stateDisplayNames[selectedContact.qualificationState]}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Collected Data */}
+                    <div className="space-y-2">
+                      {/* Name */}
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${selectedContact.qualificationData.name ? 'bg-green-50' : 'bg-gray-50'}`}>
+                        <User className={`h-4 w-4 ${selectedContact.qualificationData.name ? 'text-green-500' : 'text-gray-300'}`} />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">الاسم</p>
+                          <p className="text-sm font-medium">
+                            {selectedContact.qualificationData.name || <span className="text-gray-400">لم يُحدد</span>}
+                          </p>
+                        </div>
+                        {selectedContact.qualificationData.name && <CheckCircle className="h-4 w-4 text-green-500" />}
+                      </div>
+
+                      {/* Property Type */}
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${selectedContact.qualificationData.propertyType ? 'bg-green-50' : 'bg-gray-50'}`}>
+                        <Home className={`h-4 w-4 ${selectedContact.qualificationData.propertyType ? 'text-green-500' : 'text-gray-300'}`} />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">نوع العقار</p>
+                          <p className="text-sm font-medium">
+                            {selectedContact.qualificationData.propertyType
+                              ? propertyTypeNames[selectedContact.qualificationData.propertyType]
+                              : <span className="text-gray-400">لم يُحدد</span>}
+                          </p>
+                        </div>
+                        {selectedContact.qualificationData.propertyType && <CheckCircle className="h-4 w-4 text-green-500" />}
+                      </div>
+
+                      {/* Location */}
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${selectedContact.qualificationData.location?.city ? 'bg-green-50' : 'bg-gray-50'}`}>
+                        <MapPin className={`h-4 w-4 ${selectedContact.qualificationData.location?.city ? 'text-green-500' : 'text-gray-300'}`} />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">الموقع</p>
+                          <p className="text-sm font-medium">
+                            {selectedContact.qualificationData.location?.city ? (
+                              <>
+                                {selectedContact.qualificationData.location.city}
+                                {selectedContact.qualificationData.location.neighborhoods?.length && (
+                                  <span className="text-gray-500">
+                                    {' - '}
+                                    {selectedContact.qualificationData.location.neighborhoods.join('، ')}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-gray-400">لم يُحدد</span>
+                            )}
+                          </p>
+                        </div>
+                        {selectedContact.qualificationData.location?.city && <CheckCircle className="h-4 w-4 text-green-500" />}
+                      </div>
+
+                      {/* Budget */}
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${selectedContact.qualificationData.budget?.max ? 'bg-green-50' : 'bg-gray-50'}`}>
+                        <DollarSign className={`h-4 w-4 ${selectedContact.qualificationData.budget?.max ? 'text-green-500' : 'text-gray-300'}`} />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">الميزانية</p>
+                          <p className="text-sm font-medium">
+                            {formatBudget(selectedContact.qualificationData.budget) !== '-'
+                              ? formatBudget(selectedContact.qualificationData.budget)
+                              : <span className="text-gray-400">لم تُحدد</span>}
+                          </p>
+                        </div>
+                        {selectedContact.qualificationData.budget?.max && <CheckCircle className="h-4 w-4 text-green-500" />}
+                      </div>
+
+                      {/* Timeline */}
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${selectedContact.qualificationData.timeline ? 'bg-green-50' : 'bg-gray-50'}`}>
+                        <Clock className={`h-4 w-4 ${selectedContact.qualificationData.timeline ? 'text-green-500' : 'text-gray-300'}`} />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">الجدول الزمني</p>
+                          <p className="text-sm font-medium">
+                            {selectedContact.qualificationData.timeline
+                              ? timelineNames[selectedContact.qualificationData.timeline]
+                              : <span className="text-gray-400">لم يُحدد</span>}
+                          </p>
+                        </div>
+                        {selectedContact.qualificationData.timeline && <CheckCircle className="h-4 w-4 text-green-500" />}
+                      </div>
+
+                      {/* Financing */}
+                      {selectedContact.qualificationData.needsFinancing !== undefined && (
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50">
+                          <Building2 className="h-4 w-4 text-green-500" />
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500">التمويل العقاري</p>
+                            <p className="text-sm font-medium">
+                              {selectedContact.qualificationData.needsFinancing ? 'يحتاج تمويل' : 'لا يحتاج تمويل'}
+                            </p>
+                          </div>
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -549,9 +986,17 @@ export function ConversationsPage() {
                   <FileText className="h-4 w-4 me-2" />
                   عرض الملف الكامل
                 </Button>
+                <Button variant="outline" className="w-full justify-start" onClick={handleConvertToLead}>
+                  <UserPlus className="h-4 w-4 me-2" />
+                  تحويل إلى عميل محتمل
+                </Button>
                 <Button variant="outline" className="w-full justify-start">
                   <Building2 className="h-4 w-4 me-2" />
                   إنشاء صفقة
+                </Button>
+                <Button variant="outline" className="w-full justify-start" onClick={handleScheduleCallback}>
+                  <Calendar className="h-4 w-4 me-2" />
+                  جدولة موعد
                 </Button>
               </div>
             </div>

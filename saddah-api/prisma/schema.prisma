@@ -24,14 +24,15 @@ model Tenant {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users         User[]
-  contacts      Contact[]
-  companies     Company[]
-  deals         Deal[]
-  leads         Lead[]
-  activities    Activity[]
-  conversations Conversation[]
-  pipelines     Pipeline[]
+  users          User[]
+  contacts       Contact[]
+  companies      Company[]
+  deals          Deal[]
+  leads          Lead[]
+  activities     Activity[]
+  conversations  Conversation[]
+  pipelines      Pipeline[]
+  whatsAppConfig WhatsAppConfig?
 
   @@map("tenants")
 }
@@ -404,4 +405,94 @@ model Notification {
   @@index([userId, createdAt])
   @@index([tenantId])
   @@map("notifications")
+}
+
+// ============================================
+// WHATSAPP CONFIGURATION
+// ============================================
+
+model WhatsAppConfig {
+  id            String   @id @default(uuid())
+  tenantId      String   @unique @map("tenant_id")
+  provider      String   @default("twilio") // 'twilio' or 'meta'
+  phoneNumber   String?  @map("phone_number")
+  credentials   String   // Encrypted JSON containing API keys
+  webhookSecret String   @map("webhook_secret")
+  isActive      Boolean  @default(false) @map("is_active")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  lastTestedAt  DateTime? @map("last_tested_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("whatsapp_configs")
+}
+
+model WhatsAppQuotaUsage {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+
+  // Daily tracking
+  dailyCount    Int      @default(0) @map("daily_count")
+  dailyDate     DateTime @map("daily_date") @db.Date
+
+  // Monthly tracking
+  monthlyCount  Int      @default(0) @map("monthly_count")
+  monthYear     String   @map("month_year") // Format: YYYY-MM
+
+  // Limits (can be overridden per tenant)
+  dailyLimit    Int      @default(1000) @map("daily_limit")
+  monthlyLimit  Int      @default(10000) @map("monthly_limit")
+
+  // Warnings sent
+  warning80Sent Boolean  @default(false) @map("warning_80_sent")
+  warning90Sent Boolean  @default(false) @map("warning_90_sent")
+  warning100Sent Boolean @default(false) @map("warning_100_sent")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, dailyDate])
+  @@unique([tenantId, monthYear])
+  @@index([tenantId])
+  @@map("whatsapp_quota_usage")
+}
+
+model WhatsAppTemplate {
+  id         String @id @default(uuid())
+  tenantId   String @map("tenant_id")
+  externalId String @map("external_id") // ID from WhatsApp/Meta
+
+  name       String
+  language   String   @default("ar")
+  category   String   // MARKETING, UTILITY, AUTHENTICATION
+  status     String   @default("PENDING") // PENDING, APPROVED, REJECTED
+
+  // Template structure
+  components Json     @default("[]") // Header, body, footer, buttons
+
+  // Example content for preview
+  headerText   String?  @map("header_text")
+  bodyText     String   @map("body_text")
+  footerText   String?  @map("footer_text")
+
+  // Variable placeholders count
+  variableCount Int    @default(0) @map("variable_count")
+
+  // Meta info
+  rejectionReason String?  @map("rejection_reason")
+  qualityScore    String?  @map("quality_score") // GREEN, YELLOW, RED
+  lastSyncedAt    DateTime? @map("last_synced_at")
+
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, name, language])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, category])
+  @@map("whatsapp_templates")
 }

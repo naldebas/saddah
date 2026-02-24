@@ -6,7 +6,10 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // Enable raw body for webhook signature verification
+    rawBody: true,
+  });
   const configService = app.get(ConfigService);
 
   // Security
@@ -67,6 +70,7 @@ async function bootstrap() {
       .addTag('Leads', 'Lead management')
       .addTag('Activities', 'Activity management')
       .addTag('Conversations', 'Conversation management')
+      .addTag('WhatsApp Webhooks', 'WhatsApp webhook endpoints')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

@@ -67,6 +67,44 @@ AI-Powered CRM API for Saudi Real Estate Market.
 | Admin | admin@saddah.io | Admin@123 |
 | Sales Rep | ahmad@saddah.io | Sales@123 |
 
+## WhatsApp Integration
+
+SADDAH includes a powerful WhatsApp integration for automated lead qualification.
+
+### Features
+
+- **AI-Powered Bot**: Qualifies leads in Saudi Arabic dialect using GPT-4
+- **Multi-Provider**: Supports Twilio and Meta Business API
+- **Real-time Updates**: WebSocket notifications for live conversations
+- **Template Messages**: WhatsApp-approved message templates
+- **Media Support**: Images, documents, audio, and video
+
+### Quick Setup
+
+1. **Configure provider:**
+   ```bash
+   # For Twilio
+   WHATSAPP_PROVIDER=twilio
+   TWILIO_ACCOUNT_SID=ACxxxxxxxx
+   TWILIO_AUTH_TOKEN=xxxxxxxx
+   TWILIO_WHATSAPP_NUMBER=+14155238886
+
+   # For Meta
+   WHATSAPP_PROVIDER=meta
+   META_PHONE_NUMBER_ID=1234567890
+   META_ACCESS_TOKEN=EAAxxxxxxxx
+   ```
+
+2. **Configure webhooks:**
+   - Twilio: `https://your-domain.com/api/v1/whatsapp/webhook/twilio`
+   - Meta: `https://your-domain.com/api/v1/whatsapp/webhook`
+
+### Documentation
+
+- [Integration Guide](./docs/whatsapp-integration.md)
+- [Bot Flow](./docs/whatsapp-bot-flow.md)
+- [Troubleshooting](./docs/whatsapp-troubleshooting.md)
+
 ## Project Structure
 
 ```
@@ -79,6 +117,9 @@ src/
 │   ├── deals/          # Deal/opportunity management
 │   ├── leads/          # Lead management
 │   ├── activities/     # Activity tracking
+│   ├── conversations/  # WhatsApp conversations
+│   ├── ai/             # AI/LLM services
+│   ├── integrations/   # WhatsApp, external integrations
 │   └── health/         # Health check endpoint
 ├── prisma/
 │   └── prisma.service.ts
@@ -98,6 +139,13 @@ Once running, visit `/docs` for Swagger documentation.
 | POST | /api/v1/auth/refresh | Refresh token |
 | GET | /api/v1/contacts | List contacts |
 | POST | /api/v1/contacts | Create contact |
+| GET | /api/v1/leads | List leads |
+| POST | /api/v1/leads | Create lead |
+| GET | /api/v1/conversations | List conversations |
+| POST | /api/v1/whatsapp/webhook | WhatsApp webhook (Meta) |
+| POST | /api/v1/whatsapp/webhook/twilio | WhatsApp webhook (Twilio) |
+| GET | /api/v1/whatsapp/templates | List message templates |
+| POST | /api/v1/whatsapp/templates/sync | Sync templates from WhatsApp |
 | GET | /api/v1/health | Health check |
 
 ## Scripts
@@ -120,6 +168,11 @@ Once running, visit `/docs` for Swagger documentation.
 | `JWT_SECRET` | JWT signing secret | - |
 | `JWT_REFRESH_SECRET` | Refresh token secret | - |
 | `REDIS_HOST` | Redis host | localhost |
+| `OPENAI_API_KEY` | OpenAI API key for AI bot | - |
+| `WHATSAPP_PROVIDER` | WhatsApp provider (twilio/meta) | twilio |
+| `WHATSAPP_BOT_ENABLED` | Enable WhatsApp bot | true |
+
+See [WhatsApp Integration Guide](./docs/whatsapp-integration.md) for full WhatsApp configuration.
 
 ## Multi-tenancy
 
