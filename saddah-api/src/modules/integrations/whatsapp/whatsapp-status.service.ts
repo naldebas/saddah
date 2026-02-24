@@ -1,11 +1,10 @@
 // src/modules/integrations/whatsapp/whatsapp-status.service.ts
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { StatusUpdate } from './interfaces/whatsapp-adapter.interface';
-import { WhatsAppWebhookController, WhatsAppWebhookHandler } from './whatsapp-webhook.controller';
-import { IncomingMessage } from './interfaces/whatsapp-adapter.interface';
+import { WhatsAppWebhookEvents } from './whatsapp-webhook.controller';
 
 /**
  * Internal message status enum
@@ -67,28 +66,25 @@ const STATUS_MAP: Record<string, DeliveryStatus> = {
 };
 
 @Injectable()
-export class WhatsAppStatusService implements OnModuleInit, WhatsAppWebhookHandler {
+export class WhatsAppStatusService implements OnModuleInit {
   private readonly logger = new Logger(WhatsAppStatusService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly notificationsService: NotificationsService,
-    private readonly webhookController: WhatsAppWebhookController,
   ) {}
 
   onModuleInit() {
-    // Register as webhook handler for status updates
-    this.webhookController.registerHandler(this);
     this.logger.log('WhatsApp Status Service initialized');
   }
 
   /**
-   * Handle incoming messages (required by interface, but handled by bot service)
+   * Handle status updates from webhooks (via event)
    */
-  async onMessage(_message: IncomingMessage): Promise<void> {
-    // Messages are handled by WhatsAppBotService
-    // This handler is just for status updates
+  @OnEvent(WhatsAppWebhookEvents.STATUS_RECEIVED)
+  async handleWebhookStatus(status: StatusUpdate): Promise<void> {
+    await this.onStatusUpdate(status);
   }
 
   /**

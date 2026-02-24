@@ -3,7 +3,7 @@ import { Process, Processor, OnQueueActive, OnQueueCompleted, OnQueueFailed } fr
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 
-import { WHATSAPP_QUEUE } from './whatsapp.module';
+import { WHATSAPP_QUEUE } from './constants';
 import { WhatsAppSenderService, MessageJobData } from './whatsapp-sender.service';
 import { MessageResult } from './interfaces/whatsapp-adapter.interface';
 

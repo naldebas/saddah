@@ -25,8 +25,7 @@ import { WhatsAppQuotaService } from './whatsapp-quota.service';
 import { WhatsAppTemplateService } from './whatsapp-template.service';
 import { WhatsAppTemplateController } from './whatsapp-template.controller';
 import { WHATSAPP_ADAPTER } from './interfaces/whatsapp-adapter.interface';
-
-export const WHATSAPP_QUEUE = 'whatsapp-messages';
+import { WHATSAPP_QUEUE } from './constants';
 
 @Module({
   imports: [
@@ -86,7 +85,6 @@ export const WHATSAPP_QUEUE = 'whatsapp-messages';
     WHATSAPP_ADAPTER,
     TwilioWhatsAppAdapter,
     MetaWhatsAppAdapter,
-    WhatsAppWebhookController,
     WhatsAppTransformerService,
     WhatsAppSenderService,
     WhatsAppBotService,
@@ -95,7 +93,6 @@ export const WHATSAPP_QUEUE = 'whatsapp-messages';
     WhatsAppContactSyncService,
     WhatsAppQuotaService,
     WhatsAppTemplateService,
-    BullModule,
   ],
 })
 export class WhatsAppModule {}

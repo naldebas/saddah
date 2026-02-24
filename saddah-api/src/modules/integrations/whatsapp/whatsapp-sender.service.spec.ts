@@ -11,7 +11,7 @@ import {
 } from './whatsapp-sender.service';
 import { WhatsAppTransformerService } from './whatsapp-transformer.service';
 import { WhatsAppQuotaService } from './whatsapp-quota.service';
-import { WHATSAPP_QUEUE } from './whatsapp.module';
+import { WHATSAPP_QUEUE } from './constants';
 import { WHATSAPP_ADAPTER } from './interfaces/whatsapp-adapter.interface';
 
 describe('WhatsAppSenderService', () => {

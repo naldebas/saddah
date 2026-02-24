@@ -16,6 +16,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint } from '@nestjs/
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Public } from '../../auth/decorators/public.decorator';
 import { WhatsAppAdapterFactory } from './whatsapp.factory';
@@ -30,7 +31,13 @@ export interface WebhookEvent {
   receivedAt: Date;
 }
 
-// Event emitter interface for notifying other services
+// Event names for webhook events
+export const WhatsAppWebhookEvents = {
+  MESSAGE_RECEIVED: 'whatsapp.webhook.message',
+  STATUS_RECEIVED: 'whatsapp.webhook.status',
+} as const;
+
+// Event emitter interface for notifying other services (kept for backwards compatibility)
 export interface WhatsAppWebhookHandler {
   onMessage(message: IncomingMessage): Promise<void>;
   onStatusUpdate(status: StatusUpdate): Promise<void>;
@@ -41,19 +48,12 @@ export interface WhatsAppWebhookHandler {
 @Public() // All webhook endpoints are public (no JWT)
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);
-  private webhookHandlers: WhatsAppWebhookHandler[] = [];
 
   constructor(
     private readonly adapterFactory: WhatsAppAdapterFactory,
     private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
-
-  /**
-   * Register a handler to receive webhook events
-   */
-  registerHandler(handler: WhatsAppWebhookHandler): void {
-    this.webhookHandlers.push(handler);
-  }
 
   /**
    * GET /webhooks/whatsapp
@@ -195,26 +195,16 @@ export class WhatsAppWebhookController {
   }
 
   /**
-   * Notify all registered handlers of a new message
+   * Notify all handlers of a new message via EventEmitter
    */
   private async notifyMessageHandlers(message: IncomingMessage): Promise<void> {
-    const promises = this.webhookHandlers.map((handler) =>
-      handler.onMessage(message).catch((error) => {
-        this.logger.error(`Handler error on message: ${error.message}`);
-      }),
-    );
-    await Promise.all(promises);
+    this.eventEmitter.emit(WhatsAppWebhookEvents.MESSAGE_RECEIVED, message);
   }
 
   /**
-   * Notify all registered handlers of a status update
+   * Notify all handlers of a status update via EventEmitter
    */
   private async notifyStatusHandlers(status: StatusUpdate): Promise<void> {
-    const promises = this.webhookHandlers.map((handler) =>
-      handler.onStatusUpdate(status).catch((error) => {
-        this.logger.error(`Handler error on status: ${error.message}`);
-      }),
-    );
-    await Promise.all(promises);
+    this.eventEmitter.emit(WhatsAppWebhookEvents.STATUS_RECEIVED, status);
   }
 }

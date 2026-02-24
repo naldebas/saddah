@@ -18,7 +18,7 @@ import {
 
 import { WhatsAppSenderService } from './whatsapp-sender.service';
 import { WhatsAppTransformerService, TransformedMessage } from './whatsapp-transformer.service';
-import { WhatsAppWebhookController, WhatsAppWebhookHandler } from './whatsapp-webhook.controller';
+import { WhatsAppWebhookEvents } from './whatsapp-webhook.controller';
 import { WhatsAppContactSyncService } from './whatsapp-contact-sync.service';
 import { IncomingMessage, StatusUpdate } from './interfaces/whatsapp-adapter.interface';
 import {
@@ -54,7 +54,7 @@ export const WhatsAppBotEvents = {
 } as const;
 
 @Injectable()
-export class WhatsAppBotService implements OnModuleInit, WhatsAppWebhookHandler {
+export class WhatsAppBotService implements OnModuleInit {
   private readonly logger = new Logger(WhatsAppBotService.name);
   private readonly botEnabled: boolean;
   private readonly botGreeting: string;
@@ -72,7 +72,6 @@ export class WhatsAppBotService implements OnModuleInit, WhatsAppWebhookHandler 
     private readonly dialectService: SaudiDialectService,
     private readonly senderService: WhatsAppSenderService,
     private readonly transformer: WhatsAppTransformerService,
-    private readonly webhookController: WhatsAppWebhookController,
     private readonly contactSyncService: WhatsAppContactSyncService,
   ) {
     this.botEnabled = this.configService.get<boolean>('whatsapp.botEnabled', true);
@@ -94,9 +93,23 @@ export class WhatsAppBotService implements OnModuleInit, WhatsAppWebhookHandler 
   }
 
   onModuleInit() {
-    // Register as webhook handler
-    this.webhookController.registerHandler(this);
     this.logger.log(`WhatsApp Bot Service initialized. Bot enabled: ${this.botEnabled}`);
+  }
+
+  /**
+   * Handle incoming WhatsApp message (via event)
+   */
+  @OnEvent(WhatsAppWebhookEvents.MESSAGE_RECEIVED)
+  async handleWebhookMessage(incomingMessage: IncomingMessage): Promise<void> {
+    await this.onMessage(incomingMessage);
+  }
+
+  /**
+   * Handle status update (via event)
+   */
+  @OnEvent(WhatsAppWebhookEvents.STATUS_RECEIVED)
+  async handleWebhookStatus(status: StatusUpdate): Promise<void> {
+    await this.onStatusUpdate(status);
   }
 
   /**

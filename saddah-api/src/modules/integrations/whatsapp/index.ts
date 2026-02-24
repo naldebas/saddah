@@ -1,6 +1,6 @@
 // src/modules/integrations/whatsapp/index.ts
 export * from './whatsapp.module';
-export { WHATSAPP_QUEUE } from './whatsapp.module';
+export { WHATSAPP_QUEUE } from './constants';
 export * from './interfaces';
 export * from './adapters';
 export * from './guards';

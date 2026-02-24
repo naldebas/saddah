@@ -5,7 +5,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
-import { WHATSAPP_QUEUE } from './whatsapp.module';
+import { WHATSAPP_QUEUE } from './constants';
 import {
   WhatsAppAdapter,
   WHATSAPP_ADAPTER,
