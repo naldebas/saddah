@@ -64,10 +64,18 @@ export interface ChangePasswordDto {
   confirmPassword: string;
 }
 
+export interface QueryUsersParams {
+  search?: string;
+  role?: string;
+  isActive?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
 export const userApi = {
   // Admin functions
-  getAll: async (): Promise<User[]> => {
-    const response = await api.get('/users');
+  getAll: async (params?: QueryUsersParams): Promise<User[]> => {
+    const response = await api.get('/users', { params });
     return response.data;
   },
 

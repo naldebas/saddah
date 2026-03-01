@@ -116,3 +116,12 @@ export {
   useLinkConversationToContact,
   useSendMessage,
 } from './useConversations';
+
+// Users hooks
+export {
+  useUsers,
+  useUser,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from './useUsers';

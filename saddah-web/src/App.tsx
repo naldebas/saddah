@@ -20,6 +20,7 @@ const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage').then(m =
 const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const ConversationsPage = lazy(() => import('@/pages/conversations/ConversationsPage').then(m => ({ default: m.ConversationsPage })));
 const PipelinesPage = lazy(() => import('@/pages/pipelines/PipelinesPage').then(m => ({ default: m.PipelinesPage })));
+const UsersPage = lazy(() => import('@/pages/users/UsersPage').then(m => ({ default: m.UsersPage })));
 
 // Layouts
 import { AppShell } from '@/components/layout/AppShell';
@@ -133,6 +134,11 @@ function App() {
         <Route path="settings" element={
           <Suspense fallback={<PageLoader />}>
             <SettingsPage />
+          </Suspense>
+        } />
+        <Route path="admin/users" element={
+          <Suspense fallback={<PageLoader />}>
+            <UsersPage />
           </Suspense>
         } />
       </Route>

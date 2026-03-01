@@ -90,7 +90,40 @@
     "conversations": "Conversations",
     "reports": "Reports",
     "pipelines": "Pipelines",
-    "settings": "Settings"
+    "settings": "Settings",
+    "admin": {
+      "section": "Administration",
+      "users": "Users"
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "User Management",
+      "subtitle": "Manage system users and their permissions",
+      "addUser": "Add User",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "createdAt": "Created At",
+      "lastLogin": "Last Login",
+      "total": "Total Users",
+      "active": "Active",
+      "admins": "System Admins",
+      "managers": "Sales Managers",
+      "salesReps": "Sales Reps",
+      "filterByRole": "Filter by Role",
+      "filterByStatus": "Filter by Status",
+      "allRoles": "All Roles",
+      "allStatuses": "All Statuses",
+      "searchPlaceholder": "Search by name or email...",
+      "noUsers": "No users found",
+      "roles": {
+        "admin": "System Admin",
+        "sales_manager": "Sales Manager",
+        "sales_rep": "Sales Representative"
+      }
+    }
   },
   "dashboard": {
     "title": "Dashboard",

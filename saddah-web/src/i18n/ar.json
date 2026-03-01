@@ -90,7 +90,40 @@
     "conversations": "المحادثات",
     "reports": "التقارير",
     "pipelines": "المسارات",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "admin": {
+      "section": "الإدارة",
+      "users": "المستخدمين"
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "إدارة المستخدمين",
+      "subtitle": "إدارة مستخدمي النظام وصلاحياتهم",
+      "addUser": "إضافة مستخدم",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "status": "الحالة",
+      "createdAt": "تاريخ الإنشاء",
+      "lastLogin": "آخر دخول",
+      "total": "إجمالي المستخدمين",
+      "active": "نشط",
+      "admins": "مدراء النظام",
+      "managers": "مدراء المبيعات",
+      "salesReps": "مندوبي المبيعات",
+      "filterByRole": "تصفية حسب الدور",
+      "filterByStatus": "تصفية حسب الحالة",
+      "allRoles": "جميع الأدوار",
+      "allStatuses": "جميع الحالات",
+      "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني...",
+      "noUsers": "لا يوجد مستخدمين",
+      "roles": {
+        "admin": "مدير النظام",
+        "sales_manager": "مدير المبيعات",
+        "sales_rep": "مندوب مبيعات"
+      }
+    }
   },
   "dashboard": {
     "title": "لوحة التحكم",
