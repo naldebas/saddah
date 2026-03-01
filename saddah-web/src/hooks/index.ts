@@ -125,3 +125,21 @@ export {
   useUpdateUser,
   useDeleteUser,
 } from './useUsers';
+
+// Settings hooks
+export {
+  useTenantSettings,
+  useUpdateTenantSettings,
+  useNotificationPreferences,
+  useUpdateNotificationPreferences,
+  useUserPreferences,
+  useUpdateUserPreferences,
+  usePlanInfo,
+  useWhatsAppConfig,
+  useUpdateWhatsAppConfig,
+  useTestWhatsAppConnection,
+  useActivateWhatsApp,
+  useDeactivateWhatsApp,
+  useDeleteWhatsAppConfig,
+  useRotateWhatsAppSecret,
+} from './useSettings';

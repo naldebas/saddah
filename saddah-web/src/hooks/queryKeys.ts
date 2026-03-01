@@ -126,4 +126,14 @@ export const queryKeys = {
       [...queryKeys.conversations.all, conversationId, 'messages', params] as const,
     statistics: () => [...queryKeys.conversations.all, 'statistics'] as const,
   },
+
+  // Settings
+  settings: {
+    all: ['settings'] as const,
+    tenant: () => [...queryKeys.settings.all, 'tenant'] as const,
+    notifications: () => [...queryKeys.settings.all, 'notifications'] as const,
+    preferences: () => [...queryKeys.settings.all, 'preferences'] as const,
+    plan: () => [...queryKeys.settings.all, 'plan'] as const,
+    whatsapp: () => [...queryKeys.settings.all, 'whatsapp'] as const,
+  },
 };
