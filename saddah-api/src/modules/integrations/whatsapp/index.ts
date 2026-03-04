@@ -10,7 +10,7 @@ export * from './whatsapp-webhook.controller';
 export * from './whatsapp-transformer.service';
 export * from './whatsapp-sender.service';
 export * from './whatsapp-message.processor';
-export * from './whatsapp-bot.service';
+export * from './whatsapp-botpress-handler.service';
 export * from './whatsapp-status.service';
 export * from './whatsapp-media.service';
 export * from './whatsapp-contact-sync.service';

@@ -496,3 +496,47 @@ model WhatsAppTemplate {
   @@index([tenantId, category])
   @@map("whatsapp_templates")
 }
+
+// ============================================
+// BOTPRESS INTEGRATION
+// ============================================
+
+model BotpressConfig {
+  id                     String    @id @default(uuid())
+  tenantId               String    @unique @map("tenant_id")
+  botId                  String    @map("bot_id")
+  workspaceId            String    @map("workspace_id")
+  credentials            String    // Encrypted: { token, webhookSecret }
+  webhookUrl             String    @map("webhook_url") // Botpress webhook URL
+  callbackUrl            String    @map("callback_url") // Saddah callback URL for Botpress events
+  isActive               Boolean   @default(false) @map("is_active")
+  isVerified             Boolean   @default(false) @map("is_verified")
+  autoCreateLead         Boolean   @default(true) @map("auto_create_lead")
+  autoConvertDeal        Boolean   @default(true) @map("auto_convert_deal")
+  qualificationThreshold Int       @default(60) @map("qualification_threshold")
+  defaultPipelineId      String?   @map("default_pipeline_id")
+  lastTestedAt           DateTime? @map("last_tested_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@map("botpress_configs")
+}
+
+model BotpressConversation {
+  id                 String   @id @default(uuid())
+  tenantId           String   @map("tenant_id")
+  conversationId     String   @map("conversation_id") // Saddah conversation ID
+  botpressConvId     String   @map("botpress_conv_id") // Botpress conversation ID
+  botpressState      String?  @map("botpress_state") // Current flow state
+  qualificationData  Json     @default("{}") @map("qualification_data")
+  qualificationScore Int      @default(0) @map("qualification_score")
+  lastSyncedAt       DateTime @map("last_synced_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, conversationId])
+  @@index([tenantId])
+  @@index([botpressConvId])
+  @@map("botpress_conversations")
+}

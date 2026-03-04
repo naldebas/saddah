@@ -23,7 +23,7 @@ import { SearchModule } from './modules/search/search.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
-import { AiModule } from './modules/ai/ai.module';
+import { BotpressModule } from './modules/integrations/botpress';
 import { WhatsAppModule } from './modules/integrations/whatsapp';
 
 @Module({
@@ -91,7 +91,7 @@ import { WhatsAppModule } from './modules/integrations/whatsapp';
     SettingsModule,
     ReportsModule,
     ConversationsModule,
-    AiModule,
+    BotpressModule,
     WhatsAppModule,
   ],
   providers: [

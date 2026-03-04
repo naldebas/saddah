@@ -8,7 +8,7 @@ import {
   NewMessagePayload,
   MessageStatusPayload,
 } from './conversations.gateway';
-import { WhatsAppBotEvents } from '../integrations/whatsapp/whatsapp-bot.service';
+import { BotpressInternalEvents } from '../integrations/botpress/interfaces/botpress-events.interface';
 import { WhatsAppStatusEvents } from '../integrations/whatsapp/whatsapp-status.service';
 import { WhatsAppSenderEvents } from '../integrations/whatsapp/whatsapp-sender.service';
 
@@ -22,13 +22,13 @@ export class ConversationsEventsService {
   ) {}
 
   // ============================================
-  // WHATSAPP BOT EVENTS
+  // BOTPRESS EVENTS
   // ============================================
 
   /**
-   * Handle new conversation started
+   * Handle new conversation started (from Botpress sync)
    */
-  @OnEvent(WhatsAppBotEvents.CONVERSATION_STARTED)
+  @OnEvent(BotpressInternalEvents.CONVERSATION_SYNCED)
   async handleConversationStarted(payload: {
     conversationId: string;
     channelId: string;
@@ -70,9 +70,9 @@ export class ConversationsEventsService {
   }
 
   /**
-   * Handle message processed by bot
+   * Handle message forwarded to Botpress
    */
-  @OnEvent(WhatsAppBotEvents.MESSAGE_PROCESSED)
+  @OnEvent(BotpressInternalEvents.MESSAGE_FORWARDED)
   async handleMessageProcessed(payload: {
     conversationId: string;
     state: string;
@@ -102,9 +102,9 @@ export class ConversationsEventsService {
   }
 
   /**
-   * Handle bot response sent
+   * Handle bot response received from Botpress
    */
-  @OnEvent(WhatsAppBotEvents.RESPONSE_SENT)
+  @OnEvent(BotpressInternalEvents.MESSAGE_RECEIVED)
   async handleResponseSent(payload: {
     conversationId: string;
     messageId: string;
@@ -148,7 +148,7 @@ export class ConversationsEventsService {
   /**
    * Handle handoff triggered
    */
-  @OnEvent(WhatsAppBotEvents.HANDOFF_TRIGGERED)
+  @OnEvent(BotpressInternalEvents.HANDOFF_TRIGGERED)
   async handleHandoffTriggered(payload: {
     conversationId: string;
     reason: string;

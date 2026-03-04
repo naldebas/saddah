@@ -26,6 +26,7 @@ import { CreateUserModal } from './CreateUserModal';
 import { EditUserModal } from './EditUserModal';
 import { OrganizationSettings } from './OrganizationSettings';
 import { WhatsAppSettings } from './WhatsAppSettings';
+import { BotpressSettings } from './BotpressSettings';
 import {
   useNotificationPreferences,
   useUpdateNotificationPreferences,
@@ -511,7 +512,14 @@ export function SettingsPage() {
         );
 
       case 'integrations':
-        return <WhatsAppSettings />;
+        return (
+          <div className="space-y-10">
+            <WhatsAppSettings />
+            <div className="border-t border-gray-200 pt-10">
+              <BotpressSettings />
+            </div>
+          </div>
+        );
 
       case 'team':
         return (

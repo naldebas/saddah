@@ -4,8 +4,8 @@ import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 
 import { PrismaModule } from '../../../prisma/prisma.module';
-import { AiModule } from '../../ai/ai.module';
 import { SettingsModule } from '../../settings/settings.module';
+import { BotpressModule } from '../botpress/botpress.module';
 
 import { TwilioWhatsAppAdapter } from './adapters/twilio.adapter';
 import { MetaWhatsAppAdapter } from './adapters/meta.adapter';
@@ -15,7 +15,7 @@ import { WebhookSignatureGuard } from './guards/webhook-signature.guard';
 import { WhatsAppTransformerService } from './whatsapp-transformer.service';
 import { WhatsAppSenderService } from './whatsapp-sender.service';
 import { WhatsAppMessageProcessor } from './whatsapp-message.processor';
-import { WhatsAppBotService } from './whatsapp-bot.service';
+import { WhatsAppBotpressHandlerService } from './whatsapp-botpress-handler.service';
 import { WhatsAppStatusService } from './whatsapp-status.service';
 import { WhatsAppStatusController } from './whatsapp-status.controller';
 import { WhatsAppMediaService } from './whatsapp-media.service';
@@ -31,8 +31,8 @@ import { WHATSAPP_QUEUE } from './constants';
   imports: [
     ConfigModule,
     PrismaModule,
-    AiModule,
     SettingsModule,
+    BotpressModule,
     BullModule.registerQueue({
       name: WHATSAPP_QUEUE,
       defaultJobOptions: {
@@ -69,7 +69,7 @@ import { WHATSAPP_QUEUE } from './constants';
     // Services
     WhatsAppTransformerService,
     WhatsAppSenderService,
-    WhatsAppBotService,
+    WhatsAppBotpressHandlerService,
     WhatsAppStatusService,
     WhatsAppMediaService,
     WhatsAppContactSyncService,
@@ -87,7 +87,7 @@ import { WHATSAPP_QUEUE } from './constants';
     MetaWhatsAppAdapter,
     WhatsAppTransformerService,
     WhatsAppSenderService,
-    WhatsAppBotService,
+    WhatsAppBotpressHandlerService,
     WhatsAppStatusService,
     WhatsAppMediaService,
     WhatsAppContactSyncService,
