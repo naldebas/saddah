@@ -9,7 +9,7 @@ import { ScoreLeadDto } from './dto/score-lead.dto';
 import { LeadRecommendationsService } from './lead-recommendations.service';
 
 // Roles that can see all leads
-const FULL_ACCESS_ROLES = ['admin', 'manager'];
+const FULL_ACCESS_ROLES = ['admin', 'manager', 'sales_manager'];
 
 @Injectable()
 export class LeadsService {
@@ -198,12 +198,16 @@ export class LeadsService {
           }
         : undefined;
 
-    // Get ownership filter based on role
-    const ownershipFilter = this.getOwnershipFilter(userId, userRole);
+    // For non-admin roles, force ownerId filter to current user
+    // Admin/manager can filter by any ownerId or see all
+    const isFullAccess = FULL_ACCESS_ROLES.includes(userRole);
+    const ownerIdFilter = isFullAccess
+      ? (ownerId ? { ownerId } : {})
+      : { ownerId: userId };
 
     const where: Prisma.LeadWhereInput = {
       tenantId,
-      ...ownershipFilter,
+      ...ownerIdFilter,
       ...(search && {
         OR: [
           { firstName: { contains: search, mode: 'insensitive' as const } },
@@ -215,7 +219,6 @@ export class LeadsService {
       ...(status && { status }),
       ...(source && { source }),
       ...(propertyType && { propertyType }),
-      ...(ownerId && { ownerId }),
       ...(scoreFilter && { score: scoreFilter }),
     };
 
