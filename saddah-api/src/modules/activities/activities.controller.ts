@@ -54,27 +54,28 @@ export class ActivitiesController {
   @ApiResponse({ status: 200, description: 'قائمة الأنشطة' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Query() query: QueryActivitiesDto,
   ) {
-    return this.activitiesService.findAll(tenantId, query);
+    return this.activitiesService.findAll(tenantId, userId, userRole, query);
   }
 
   @Get('upcoming')
   @RequirePermission('activities.view')
   @ApiOperation({ summary: 'الحصول على الأنشطة القادمة والمتأخرة' })
   @ApiResponse({ status: 200, description: 'قائمة الأنشطة القادمة' })
-  @ApiQuery({ name: 'mine', required: false, type: Boolean })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   getUpcoming(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Query('mine') mine?: string,
+    @CurrentUser('role') userRole: string,
     @Query('limit') limit?: string,
   ) {
-    const onlyMine = mine === 'true';
     return this.activitiesService.getUpcoming(
       tenantId,
-      onlyMine ? userId : undefined,
+      userId,
+      userRole,
       limit ? parseInt(limit, 10) : 10,
     );
   }
@@ -83,17 +84,12 @@ export class ActivitiesController {
   @RequirePermission('activities.view')
   @ApiOperation({ summary: 'الحصول على إحصائيات الأنشطة' })
   @ApiResponse({ status: 200, description: 'إحصائيات الأنشطة' })
-  @ApiQuery({ name: 'mine', required: false, type: Boolean })
   getStatistics(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
-    @Query('mine') mine?: string,
+    @CurrentUser('role') userRole: string,
   ) {
-    const onlyMine = mine === 'true';
-    return this.activitiesService.getStatistics(
-      tenantId,
-      onlyMine ? userId : undefined,
-    );
+    return this.activitiesService.getStatistics(tenantId, userId, userRole);
   }
 
   @Get('timeline')
@@ -123,9 +119,11 @@ export class ActivitiesController {
   @ApiResponse({ status: 404, description: 'النشاط غير موجود' })
   findOne(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.activitiesService.findOne(tenantId, id);
+    return this.activitiesService.findOne(tenantId, id, userId, userRole);
   }
 
   @Patch(':id')
@@ -135,10 +133,12 @@ export class ActivitiesController {
   @ApiResponse({ status: 404, description: 'النشاط غير موجود' })
   update(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateActivityDto,
   ) {
-    return this.activitiesService.update(tenantId, id, dto);
+    return this.activitiesService.update(tenantId, id, dto, userId, userRole);
   }
 
   @Patch(':id/complete')
@@ -148,10 +148,12 @@ export class ActivitiesController {
   @ApiResponse({ status: 404, description: 'النشاط غير موجود' })
   complete(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CompleteActivityDto,
   ) {
-    return this.activitiesService.complete(tenantId, id, dto);
+    return this.activitiesService.complete(tenantId, id, dto, userId, userRole);
   }
 
   @Patch(':id/uncomplete')
@@ -161,9 +163,11 @@ export class ActivitiesController {
   @ApiResponse({ status: 404, description: 'النشاط غير موجود' })
   uncomplete(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.activitiesService.uncomplete(tenantId, id);
+    return this.activitiesService.uncomplete(tenantId, id, userId, userRole);
   }
 
   @Delete(':id')
@@ -173,8 +177,10 @@ export class ActivitiesController {
   @ApiResponse({ status: 404, description: 'النشاط غير موجود' })
   remove(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.activitiesService.remove(tenantId, id);
+    return this.activitiesService.remove(tenantId, id, userId, userRole);
   }
 }

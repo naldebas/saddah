@@ -54,9 +54,11 @@ export class DealsController {
   @ApiResponse({ status: 200, description: 'قائمة الصفقات' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Query() query: QueryDealsDto,
   ) {
-    return this.dealsService.findAll(tenantId, query);
+    return this.dealsService.findAll(tenantId, userId, userRole, query);
   }
 
   @Get('statistics')
@@ -65,9 +67,11 @@ export class DealsController {
   @ApiResponse({ status: 200, description: 'إحصائيات الصفقات' })
   getStatistics(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Query('pipelineId') pipelineId?: string,
   ) {
-    return this.dealsService.getStatistics(tenantId, pipelineId);
+    return this.dealsService.getStatistics(tenantId, userId, userRole, pipelineId);
   }
 
   @Get('kanban/:pipelineId')
@@ -76,9 +80,11 @@ export class DealsController {
   @ApiResponse({ status: 200, description: 'عرض كانبان' })
   getKanbanBoard(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('pipelineId', ParseUUIDPipe) pipelineId: string,
   ) {
-    return this.dealsService.getKanbanBoard(tenantId, pipelineId);
+    return this.dealsService.getKanbanBoard(tenantId, pipelineId, userId, userRole);
   }
 
   @Get(':id')
@@ -88,9 +94,11 @@ export class DealsController {
   @ApiResponse({ status: 404, description: 'الصفقة غير موجودة' })
   findOne(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.dealsService.findOne(tenantId, id);
+    return this.dealsService.findOne(tenantId, id, userId, userRole);
   }
 
   @Patch(':id')
@@ -100,10 +108,12 @@ export class DealsController {
   @ApiResponse({ status: 404, description: 'الصفقة غير موجودة' })
   update(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateDealDto,
   ) {
-    return this.dealsService.update(tenantId, id, dto);
+    return this.dealsService.update(tenantId, id, dto, userId, userRole);
   }
 
   @Patch(':id/move')
@@ -113,10 +123,12 @@ export class DealsController {
   @ApiResponse({ status: 404, description: 'الصفقة غير موجودة' })
   moveStage(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: MoveDealDto,
   ) {
-    return this.dealsService.moveStage(tenantId, id, dto);
+    return this.dealsService.moveStage(tenantId, id, dto, userId, userRole);
   }
 
   @Patch(':id/close')
@@ -126,10 +138,12 @@ export class DealsController {
   @ApiResponse({ status: 404, description: 'الصفقة غير موجودة' })
   closeDeal(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CloseDealDto,
   ) {
-    return this.dealsService.closeDeal(tenantId, id, dto);
+    return this.dealsService.closeDeal(tenantId, id, dto, userId, userRole);
   }
 
   @Patch(':id/reopen')
@@ -139,9 +153,11 @@ export class DealsController {
   @ApiResponse({ status: 404, description: 'الصفقة غير موجودة' })
   reopenDeal(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.dealsService.reopenDeal(tenantId, id);
+    return this.dealsService.reopenDeal(tenantId, id, userId, userRole);
   }
 
   @Delete(':id')
@@ -151,8 +167,10 @@ export class DealsController {
   @ApiResponse({ status: 404, description: 'الصفقة غير موجودة' })
   remove(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.dealsService.remove(tenantId, id);
+    return this.dealsService.remove(tenantId, id, userId, userRole);
   }
 }

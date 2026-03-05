@@ -53,9 +53,11 @@ export class ContactsController {
   @ApiResponse({ status: 200, description: 'قائمة جهات الاتصال' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Query() query: QueryContactsDto,
   ) {
-    return this.contactsService.findAll(tenantId, query);
+    return this.contactsService.findAll(tenantId, userId, userRole, query);
   }
 
   @Get(':id')
@@ -65,9 +67,11 @@ export class ContactsController {
   @ApiResponse({ status: 404, description: 'جهة الاتصال غير موجودة' })
   findOne(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.contactsService.findOne(tenantId, id);
+    return this.contactsService.findOne(tenantId, id, userId, userRole);
   }
 
   @Patch(':id')
@@ -77,10 +81,12 @@ export class ContactsController {
   @ApiResponse({ status: 404, description: 'جهة الاتصال غير موجودة' })
   update(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateContactDto,
   ) {
-    return this.contactsService.update(tenantId, id, dto);
+    return this.contactsService.update(tenantId, id, dto, userId, userRole);
   }
 
   @Delete(':id')
@@ -90,9 +96,11 @@ export class ContactsController {
   @ApiResponse({ status: 404, description: 'جهة الاتصال غير موجودة' })
   remove(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.contactsService.remove(tenantId, id);
+    return this.contactsService.remove(tenantId, id, userId, userRole);
   }
 
   // Bulk operations

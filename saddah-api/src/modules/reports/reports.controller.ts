@@ -40,7 +40,7 @@ export class ReportsController {
     @CurrentUser() user: JwtPayload,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getSalesReport(user.tenantId, query);
+    return this.reportsService.getSalesReport(user.tenantId, user.sub, user.role, query);
   }
 
   @Get('leads')
@@ -50,7 +50,7 @@ export class ReportsController {
     @CurrentUser() user: JwtPayload,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getLeadsReport(user.tenantId, query);
+    return this.reportsService.getLeadsReport(user.tenantId, user.sub, user.role, query);
   }
 
   @Get('activities')
@@ -60,7 +60,7 @@ export class ReportsController {
     @CurrentUser() user: JwtPayload,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getActivitiesReport(user.tenantId, query);
+    return this.reportsService.getActivitiesReport(user.tenantId, user.sub, user.role, query);
   }
 
   @Get('contacts')
@@ -70,7 +70,7 @@ export class ReportsController {
     @CurrentUser() user: JwtPayload,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getContactsReport(user.tenantId, query);
+    return this.reportsService.getContactsReport(user.tenantId, user.sub, user.role, query);
   }
 
   // ============================================
@@ -85,7 +85,7 @@ export class ReportsController {
     @Query() query: ExportQueryDto,
     @Res() res: Response,
   ) {
-    const csv = await this.reportsService.exportDeals(user.tenantId, query);
+    const csv = await this.reportsService.exportDeals(user.tenantId, user.sub, user.role, query);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=deals-${new Date().toISOString().split('T')[0]}.csv`);
@@ -101,7 +101,7 @@ export class ReportsController {
     @Query() query: ExportQueryDto,
     @Res() res: Response,
   ) {
-    const csv = await this.reportsService.exportLeads(user.tenantId, query);
+    const csv = await this.reportsService.exportLeads(user.tenantId, user.sub, user.role, query);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=leads-${new Date().toISOString().split('T')[0]}.csv`);
@@ -116,7 +116,7 @@ export class ReportsController {
     @Query() query: ExportQueryDto,
     @Res() res: Response,
   ) {
-    const csv = await this.reportsService.exportActivities(user.tenantId, query);
+    const csv = await this.reportsService.exportActivities(user.tenantId, user.sub, user.role, query);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=activities-${new Date().toISOString().split('T')[0]}.csv`);

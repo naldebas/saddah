@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 
 import { PrismaModule } from './prisma/prisma.module';
+import { CommonModule } from './common/common.module';
 import { whatsappConfig, bullConfig } from './config';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -74,6 +75,9 @@ import { WhatsAppModule } from './modules/integrations/whatsapp';
 
     // Database
     PrismaModule,
+
+    // Common services (RBAC, etc.)
+    CommonModule,
 
     // Feature modules
     AuthModule,

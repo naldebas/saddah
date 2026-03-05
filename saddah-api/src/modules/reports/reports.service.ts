@@ -2,11 +2,15 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RbacService, RbacContext } from '@/common/services/rbac.service';
 import { ReportQueryDto, ReportPeriod } from './dto/report-query.dto';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rbac: RbacService,
+  ) {}
 
   private getDateRange(query: ReportQueryDto): { startDate: Date; endDate: Date } {
     const now = new Date();
@@ -70,12 +74,27 @@ export class ReportsService {
   // SALES REPORT
   // ============================================
 
-  async getSalesReport(tenantId: string, query: ReportQueryDto) {
+  async getSalesReport(tenantId: string, userId: string, userRole: string, query: ReportQueryDto) {
     const { startDate, endDate } = this.getDateRange(query);
+
+    // Get RBAC user filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const allowedUserIds = await this.rbac.getReportUserIds(rbacContext);
+
+    // Build ownerId filter: admin can filter by any userId in query, others are restricted
+    let ownerFilter = {};
+    if (allowedUserIds !== null) {
+      // Non-admin: restrict to allowed users
+      ownerFilter = { ownerId: { in: allowedUserIds } };
+    } else if (query.userId) {
+      // Admin with specific user filter
+      ownerFilter = { ownerId: query.userId };
+    }
+
     const whereClause: Prisma.DealWhereInput = {
       tenantId,
       createdAt: { gte: startDate, lte: endDate },
-      ...(query.userId && { ownerId: query.userId }),
+      ...ownerFilter,
       ...(query.pipelineId && { pipelineId: query.pipelineId }),
     };
 
@@ -173,12 +192,25 @@ export class ReportsService {
   // LEADS REPORT
   // ============================================
 
-  async getLeadsReport(tenantId: string, query: ReportQueryDto) {
+  async getLeadsReport(tenantId: string, userId: string, userRole: string, query: ReportQueryDto) {
     const { startDate, endDate } = this.getDateRange(query);
+
+    // Get RBAC user filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const allowedUserIds = await this.rbac.getReportUserIds(rbacContext);
+
+    // Build ownerId filter
+    let ownerFilter = {};
+    if (allowedUserIds !== null) {
+      ownerFilter = { ownerId: { in: allowedUserIds } };
+    } else if (query.userId) {
+      ownerFilter = { ownerId: query.userId };
+    }
+
     const whereClause: Prisma.LeadWhereInput = {
       tenantId,
       createdAt: { gte: startDate, lte: endDate },
-      ...(query.userId && { ownerId: query.userId }),
+      ...ownerFilter,
     };
 
     // Get leads summary
@@ -279,12 +311,25 @@ export class ReportsService {
   // ACTIVITIES REPORT
   // ============================================
 
-  async getActivitiesReport(tenantId: string, query: ReportQueryDto) {
+  async getActivitiesReport(tenantId: string, userId: string, userRole: string, query: ReportQueryDto) {
     const { startDate, endDate } = this.getDateRange(query);
+
+    // Get RBAC user filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const allowedUserIds = await this.rbac.getReportUserIds(rbacContext);
+
+    // Build createdById filter (activities use createdById instead of ownerId)
+    let createdByFilter = {};
+    if (allowedUserIds !== null) {
+      createdByFilter = { createdById: { in: allowedUserIds } };
+    } else if (query.userId) {
+      createdByFilter = { createdById: query.userId };
+    }
+
     const whereClause: Prisma.ActivityWhereInput = {
       tenantId,
       createdAt: { gte: startDate, lte: endDate },
-      ...(query.userId && { createdById: query.userId }),
+      ...createdByFilter,
     };
 
     // Get activities summary
@@ -371,12 +416,25 @@ export class ReportsService {
   // CONTACTS REPORT
   // ============================================
 
-  async getContactsReport(tenantId: string, query: ReportQueryDto) {
+  async getContactsReport(tenantId: string, userId: string, userRole: string, query: ReportQueryDto) {
     const { startDate, endDate } = this.getDateRange(query);
+
+    // Get RBAC user filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const allowedUserIds = await this.rbac.getReportUserIds(rbacContext);
+
+    // Build ownerId filter
+    let ownerFilter = {};
+    if (allowedUserIds !== null) {
+      ownerFilter = { ownerId: { in: allowedUserIds } };
+    } else if (query.userId) {
+      ownerFilter = { ownerId: query.userId };
+    }
+
     const whereClause: Prisma.ContactWhereInput = {
       tenantId,
       createdAt: { gte: startDate, lte: endDate },
-      ...(query.userId && { ownerId: query.userId }),
+      ...ownerFilter,
     };
 
     const [totalContacts, sourceCounts, contactsWithDeals] = await Promise.all([
@@ -446,12 +504,25 @@ export class ReportsService {
   // EXPORT DATA
   // ============================================
 
-  async exportDeals(tenantId: string, query: ReportQueryDto): Promise<string> {
+  async exportDeals(tenantId: string, userId: string, userRole: string, query: ReportQueryDto): Promise<string> {
     const { startDate, endDate } = this.getDateRange(query);
+
+    // Get RBAC user filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const allowedUserIds = await this.rbac.getReportUserIds(rbacContext);
+
+    // Build ownerId filter
+    let ownerFilter = {};
+    if (allowedUserIds !== null) {
+      ownerFilter = { ownerId: { in: allowedUserIds } };
+    } else if (query.userId) {
+      ownerFilter = { ownerId: query.userId };
+    }
+
     const whereClause: Prisma.DealWhereInput = {
       tenantId,
       createdAt: { gte: startDate, lte: endDate },
-      ...(query.userId && { ownerId: query.userId }),
+      ...ownerFilter,
       ...(query.pipelineId && { pipelineId: query.pipelineId }),
     };
 
@@ -483,12 +554,25 @@ export class ReportsService {
     return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
   }
 
-  async exportLeads(tenantId: string, query: ReportQueryDto): Promise<string> {
+  async exportLeads(tenantId: string, userId: string, userRole: string, query: ReportQueryDto): Promise<string> {
     const { startDate, endDate } = this.getDateRange(query);
+
+    // Get RBAC user filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const allowedUserIds = await this.rbac.getReportUserIds(rbacContext);
+
+    // Build ownerId filter
+    let ownerFilter = {};
+    if (allowedUserIds !== null) {
+      ownerFilter = { ownerId: { in: allowedUserIds } };
+    } else if (query.userId) {
+      ownerFilter = { ownerId: query.userId };
+    }
+
     const whereClause: Prisma.LeadWhereInput = {
       tenantId,
       createdAt: { gte: startDate, lte: endDate },
-      ...(query.userId && { ownerId: query.userId }),
+      ...ownerFilter,
     };
 
     const leads = await this.prisma.lead.findMany({
@@ -517,12 +601,25 @@ export class ReportsService {
     return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
   }
 
-  async exportActivities(tenantId: string, query: ReportQueryDto): Promise<string> {
+  async exportActivities(tenantId: string, userId: string, userRole: string, query: ReportQueryDto): Promise<string> {
     const { startDate, endDate } = this.getDateRange(query);
+
+    // Get RBAC user filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const allowedUserIds = await this.rbac.getReportUserIds(rbacContext);
+
+    // Build createdById filter
+    let createdByFilter = {};
+    if (allowedUserIds !== null) {
+      createdByFilter = { createdById: { in: allowedUserIds } };
+    } else if (query.userId) {
+      createdByFilter = { createdById: query.userId };
+    }
+
     const whereClause: Prisma.ActivityWhereInput = {
       tenantId,
       createdAt: { gte: startDate, lte: endDate },
-      ...(query.userId && { createdById: query.userId }),
+      ...createdByFilter,
     };
 
     const activities = await this.prisma.activity.findMany({

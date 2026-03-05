@@ -1,14 +1,18 @@
 // src/modules/contacts/contacts.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RbacService, RbacContext } from '@/common/services/rbac.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { QueryContactsDto } from './dto/query-contacts.dto';
 
 @Injectable()
 export class ContactsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rbac: RbacService,
+  ) {}
 
   async create(tenantId: string, userId: string, dto: CreateContactDto) {
     return this.prisma.contact.create({
@@ -44,7 +48,7 @@ export class ContactsService {
     });
   }
 
-  async findAll(tenantId: string, query: QueryContactsDto) {
+  async findAll(tenantId: string, userId: string, userRole: string, query: QueryContactsDto) {
     const {
       page = 1,
       limit = 20,
@@ -58,9 +62,19 @@ export class ContactsService {
 
     const skip = (page - 1) * limit;
 
+    // Get RBAC ownership filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const ownershipFilter = await this.rbac.getOwnershipFilter(rbacContext);
+
+    // Admin can filter by any ownerId, others are restricted
+    const effectiveOwnerFilter = this.rbac.isAdmin(userRole) && ownerId
+      ? { ownerId }
+      : ownershipFilter;
+
     const where: Prisma.ContactWhereInput = {
       tenantId,
       isActive: true,
+      ...effectiveOwnerFilter,
       ...(search && {
         OR: [
           { firstName: { contains: search, mode: 'insensitive' as const } },
@@ -69,7 +83,6 @@ export class ContactsService {
           { phone: { contains: search } },
         ],
       }),
-      ...(ownerId && { ownerId }),
       ...(companyId && { companyId }),
       ...(source && { source }),
     };
@@ -116,7 +129,7 @@ export class ContactsService {
     };
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(tenantId: string, id: string, userId?: string, userRole?: string) {
     const contact = await this.prisma.contact.findFirst({
       where: {
         id,
@@ -152,11 +165,20 @@ export class ContactsService {
       throw new NotFoundException('جهة الاتصال غير موجودة');
     }
 
+    // Check access permissions
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canAccess = await this.rbac.canAccessResource(contact, rbacContext);
+      if (!canAccess) {
+        throw new ForbiddenException('لا يمكنك الوصول إلى جهة الاتصال هذه');
+      }
+    }
+
     return contact;
   }
 
-  async update(tenantId: string, id: string, dto: UpdateContactDto) {
-    await this.findOne(tenantId, id);
+  async update(tenantId: string, id: string, dto: UpdateContactDto, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     return this.prisma.contact.update({
       where: { id },
@@ -190,8 +212,8 @@ export class ContactsService {
     });
   }
 
-  async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+  async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     // Soft delete
     await this.prisma.contact.update({

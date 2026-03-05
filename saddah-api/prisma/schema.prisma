@@ -40,6 +40,7 @@ model Tenant {
 model User {
   id           String    @id @default(uuid())
   tenantId     String    @map("tenant_id")
+  managerId    String?   @map("manager_id")
   email        String
   passwordHash String    @map("password_hash")
   firstName    String    @map("first_name")
@@ -54,6 +55,8 @@ model User {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   tenant                Tenant         @relation(fields: [tenantId], references: [id])
+  manager               User?          @relation("UserManager", fields: [managerId], references: [id])
+  teamMembers           User[]         @relation("UserManager")
   ownedCompanies        Company[]      @relation("CompanyOwner")
   ownedContacts         Contact[]      @relation("ContactOwner")
   ownedDeals            Deal[]         @relation("DealOwner")
@@ -65,6 +68,7 @@ model User {
 
   @@unique([tenantId, email])
   @@index([tenantId])
+  @@index([managerId])
   @@map("users")
 }
 

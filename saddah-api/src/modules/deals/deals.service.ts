@@ -3,9 +3,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RbacService, RbacContext } from '@/common/services/rbac.service';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { UpdateDealDto } from './dto/update-deal.dto';
 import { QueryDealsDto } from './dto/query-deals.dto';
@@ -14,7 +16,10 @@ import { CloseDealDto } from './dto/close-deal.dto';
 
 @Injectable()
 export class DealsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rbac: RbacService,
+  ) {}
 
   async create(tenantId: string, userId: string, dto: CreateDealDto) {
     // Verify pipeline exists and belongs to tenant
@@ -85,7 +90,7 @@ export class DealsService {
     });
   }
 
-  async findAll(tenantId: string, query: QueryDealsDto) {
+  async findAll(tenantId: string, userId: string, userRole: string, query: QueryDealsDto) {
     const {
       page = 1,
       limit = 20,
@@ -102,10 +107,19 @@ export class DealsService {
 
     const skip = (page - 1) * limit;
 
+    // Get RBAC ownership filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const ownershipFilter = await this.rbac.getOwnershipFilter(rbacContext);
+
+    // Admin can filter by any ownerId, others are restricted
+    const effectiveOwnerFilter = this.rbac.isAdmin(userRole) && ownerId
+      ? { ownerId }
+      : ownershipFilter;
+
     const where: Prisma.DealWhereInput = {
       tenantId,
+      ...effectiveOwnerFilter,
       ...(search && { title: { contains: search, mode: 'insensitive' as const } }),
-      ...(ownerId && { ownerId }),
       ...(pipelineId && { pipelineId }),
       ...(stageId && { stageId }),
       ...(contactId && { contactId }),
@@ -163,7 +177,7 @@ export class DealsService {
     };
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(tenantId: string, id: string, userId?: string, userRole?: string) {
     const deal = await this.prisma.deal.findFirst({
       where: {
         id,
@@ -208,11 +222,20 @@ export class DealsService {
       throw new NotFoundException('الصفقة غير موجودة');
     }
 
+    // Check access permissions
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canAccess = await this.rbac.canAccessResource(deal, rbacContext);
+      if (!canAccess) {
+        throw new ForbiddenException('لا يمكنك الوصول إلى هذه الصفقة');
+      }
+    }
+
     return deal;
   }
 
-  async update(tenantId: string, id: string, dto: UpdateDealDto) {
-    const deal = await this.findOne(tenantId, id);
+  async update(tenantId: string, id: string, dto: UpdateDealDto, userId?: string, userRole?: string) {
+    const deal = await this.findOne(tenantId, id, userId, userRole);
 
     // If updating stage, verify it belongs to same pipeline
     if (dto.stageId && dto.stageId !== deal.stageId) {
@@ -276,8 +299,8 @@ export class DealsService {
     });
   }
 
-  async moveStage(tenantId: string, id: string, dto: MoveDealDto) {
-    const deal = await this.findOne(tenantId, id);
+  async moveStage(tenantId: string, id: string, dto: MoveDealDto, userId?: string, userRole?: string) {
+    const deal = await this.findOne(tenantId, id, userId, userRole);
 
     // Verify stage exists and belongs to same pipeline
     const stage = await this.prisma.pipelineStage.findFirst({
@@ -326,8 +349,8 @@ export class DealsService {
     });
   }
 
-  async closeDeal(tenantId: string, id: string, dto: CloseDealDto) {
-    await this.findOne(tenantId, id);
+  async closeDeal(tenantId: string, id: string, dto: CloseDealDto, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     if (dto.status === 'lost' && !dto.lostReason) {
       throw new BadRequestException('يجب تحديد سبب الخسارة');
@@ -373,8 +396,8 @@ export class DealsService {
     });
   }
 
-  async reopenDeal(tenantId: string, id: string) {
-    const deal = await this.findOne(tenantId, id);
+  async reopenDeal(tenantId: string, id: string, userId?: string, userRole?: string) {
+    const deal = await this.findOne(tenantId, id, userId, userRole);
 
     if (deal.status === 'open') {
       throw new BadRequestException('الصفقة مفتوحة بالفعل');
@@ -420,8 +443,8 @@ export class DealsService {
     });
   }
 
-  async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+  async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     await this.prisma.deal.delete({
       where: { id },
@@ -431,7 +454,7 @@ export class DealsService {
   }
 
   // Get deals grouped by stage for Kanban board
-  async getKanbanBoard(tenantId: string, pipelineId: string) {
+  async getKanbanBoard(tenantId: string, pipelineId: string, userId?: string, userRole?: string) {
     const pipeline = await this.prisma.pipeline.findFirst({
       where: { id: pipelineId, tenantId },
       include: {
@@ -445,11 +468,19 @@ export class DealsService {
       throw new NotFoundException('خط المبيعات غير موجود');
     }
 
+    // Get RBAC ownership filter
+    let ownershipFilter = {};
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      ownershipFilter = await this.rbac.getOwnershipFilter(rbacContext);
+    }
+
     const deals = await this.prisma.deal.findMany({
       where: {
         tenantId,
         pipelineId,
         status: 'open',
+        ...ownershipFilter,
       },
       include: {
         owner: {
@@ -499,9 +530,17 @@ export class DealsService {
   }
 
   // Get deal statistics
-  async getStatistics(tenantId: string, pipelineId?: string) {
+  async getStatistics(tenantId: string, userId?: string, userRole?: string, pipelineId?: string) {
+    // Get RBAC ownership filter
+    let ownershipFilter = {};
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      ownershipFilter = await this.rbac.getOwnershipFilter(rbacContext);
+    }
+
     const where: Prisma.DealWhereInput = {
       tenantId,
+      ...ownershipFilter,
       ...(pipelineId && { pipelineId }),
     };
 

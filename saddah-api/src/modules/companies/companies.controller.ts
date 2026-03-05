@@ -52,9 +52,11 @@ export class CompaniesController {
   @ApiResponse({ status: 200, description: 'قائمة الشركات' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Query() query: QueryCompaniesDto,
   ) {
-    return this.companiesService.findAll(tenantId, query);
+    return this.companiesService.findAll(tenantId, userId, userRole, query);
   }
 
   @Get('industries')
@@ -80,9 +82,11 @@ export class CompaniesController {
   @ApiResponse({ status: 404, description: 'الشركة غير موجودة' })
   findOne(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.companiesService.findOne(tenantId, id);
+    return this.companiesService.findOne(tenantId, id, userId, userRole);
   }
 
   @Patch(':id')
@@ -92,10 +96,12 @@ export class CompaniesController {
   @ApiResponse({ status: 404, description: 'الشركة غير موجودة' })
   update(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCompanyDto,
   ) {
-    return this.companiesService.update(tenantId, id, dto);
+    return this.companiesService.update(tenantId, id, dto, userId, userRole);
   }
 
   @Delete(':id')
@@ -105,8 +111,10 @@ export class CompaniesController {
   @ApiResponse({ status: 404, description: 'الشركة غير موجودة' })
   remove(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.companiesService.remove(tenantId, id);
+    return this.companiesService.remove(tenantId, id, userId, userRole);
   }
 }

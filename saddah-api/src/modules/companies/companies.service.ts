@@ -1,14 +1,18 @@
 // src/modules/companies/companies.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RbacService, RbacContext } from '@/common/services/rbac.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { QueryCompaniesDto } from './dto/query-companies.dto';
 
 @Injectable()
 export class CompaniesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rbac: RbacService,
+  ) {}
 
   async create(tenantId: string, userId: string, dto: CreateCompanyDto) {
     return this.prisma.company.create({
@@ -45,7 +49,7 @@ export class CompaniesService {
     });
   }
 
-  async findAll(tenantId: string, query: QueryCompaniesDto) {
+  async findAll(tenantId: string, userId: string, userRole: string, query: QueryCompaniesDto) {
     const {
       page = 1,
       limit = 20,
@@ -59,9 +63,14 @@ export class CompaniesService {
 
     const skip = (page - 1) * limit;
 
+    // Get RBAC ownership filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const ownershipFilter = await this.rbac.getOwnershipFilter(rbacContext);
+
     const where: Prisma.CompanyWhereInput = {
       tenantId,
       isActive: true,
+      ...ownershipFilter,
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
@@ -111,7 +120,7 @@ export class CompaniesService {
     };
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(tenantId: string, id: string, userId?: string, userRole?: string) {
     const company = await this.prisma.company.findFirst({
       where: {
         id,
@@ -164,11 +173,20 @@ export class CompaniesService {
       throw new NotFoundException('الشركة غير موجودة');
     }
 
+    // Check access permissions
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canAccess = await this.rbac.canAccessResource(company, rbacContext);
+      if (!canAccess) {
+        throw new ForbiddenException('لا يمكنك الوصول إلى هذه الشركة');
+      }
+    }
+
     return company;
   }
 
-  async update(tenantId: string, id: string, dto: UpdateCompanyDto) {
-    await this.findOne(tenantId, id);
+  async update(tenantId: string, id: string, dto: UpdateCompanyDto, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     return this.prisma.company.update({
       where: { id },
@@ -204,8 +222,8 @@ export class CompaniesService {
     });
   }
 
-  async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+  async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     // Soft delete
     await this.prisma.company.update({

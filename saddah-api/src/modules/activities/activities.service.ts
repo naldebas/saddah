@@ -1,7 +1,8 @@
 // src/modules/activities/activities.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RbacService, RbacContext } from '@/common/services/rbac.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { QueryActivitiesDto } from './dto/query-activities.dto';
@@ -9,7 +10,10 @@ import { CompleteActivityDto } from './dto/complete-activity.dto';
 
 @Injectable()
 export class ActivitiesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rbac: RbacService,
+  ) {}
 
   async create(tenantId: string, userId: string, dto: CreateActivityDto) {
     // Validate contact exists if provided
@@ -70,7 +74,7 @@ export class ActivitiesService {
     });
   }
 
-  async findAll(tenantId: string, query: QueryActivitiesDto) {
+  async findAll(tenantId: string, userId: string, userRole: string, query: QueryActivitiesDto) {
     const {
       page = 1,
       limit = 20,
@@ -88,6 +92,15 @@ export class ActivitiesService {
 
     const skip = (page - 1) * limit;
 
+    // Get RBAC createdBy filter
+    const rbacContext: RbacContext = { userId, userRole, tenantId };
+    const createdByFilter = await this.rbac.getCreatedByFilter(rbacContext);
+
+    // Admin can filter by any createdById, others are restricted
+    const effectiveCreatedByFilter = this.rbac.isAdmin(userRole) && createdById
+      ? { createdById }
+      : createdByFilter;
+
     // Build dueDate filter
     const dueDateFilter: Prisma.DateTimeNullableFilter | undefined =
       dueDateFrom || dueDateTo
@@ -99,6 +112,7 @@ export class ActivitiesService {
 
     const where: Prisma.ActivityWhereInput = {
       tenantId,
+      ...effectiveCreatedByFilter,
       ...(search && {
         OR: [
           { subject: { contains: search, mode: 'insensitive' as const } },
@@ -108,7 +122,6 @@ export class ActivitiesService {
       ...(type && { type }),
       ...(contactId && { contactId }),
       ...(dealId && { dealId }),
-      ...(createdById && { createdById }),
       ...(isCompleted !== undefined && { isCompleted }),
       ...(dueDateFilter && { dueDate: dueDateFilter }),
     };
@@ -156,7 +169,7 @@ export class ActivitiesService {
     };
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(tenantId: string, id: string, userId?: string, userRole?: string) {
     const activity = await this.prisma.activity.findFirst({
       where: {
         id,
@@ -190,11 +203,22 @@ export class ActivitiesService {
       throw new NotFoundException('النشاط غير موجود');
     }
 
+    // Check access permissions
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      // Activities use createdById instead of ownerId
+      const activityWithOwner = { ...activity, ownerId: activity.createdById };
+      const canAccess = await this.rbac.canAccessResource(activityWithOwner, rbacContext);
+      if (!canAccess) {
+        throw new ForbiddenException('لا يمكنك الوصول إلى هذا النشاط');
+      }
+    }
+
     return activity;
   }
 
-  async update(tenantId: string, id: string, dto: UpdateActivityDto) {
-    await this.findOne(tenantId, id);
+  async update(tenantId: string, id: string, dto: UpdateActivityDto, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     // Validate contact exists if being updated
     if (dto.contactId) {
@@ -255,8 +279,8 @@ export class ActivitiesService {
     });
   }
 
-  async complete(tenantId: string, id: string, dto: CompleteActivityDto) {
-    const activity = await this.findOne(tenantId, id);
+  async complete(tenantId: string, id: string, dto: CompleteActivityDto, userId?: string, userRole?: string) {
+    const activity = await this.findOne(tenantId, id, userId, userRole);
 
     if (activity.isCompleted) {
       throw new BadRequestException('النشاط مكتمل بالفعل');
@@ -295,8 +319,8 @@ export class ActivitiesService {
     });
   }
 
-  async uncomplete(tenantId: string, id: string) {
-    const activity = await this.findOne(tenantId, id);
+  async uncomplete(tenantId: string, id: string, userId?: string, userRole?: string) {
+    const activity = await this.findOne(tenantId, id, userId, userRole);
 
     if (!activity.isCompleted) {
       throw new BadRequestException('النشاط غير مكتمل');
@@ -334,8 +358,8 @@ export class ActivitiesService {
     });
   }
 
-  async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+  async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     await this.prisma.activity.delete({
       where: { id },
@@ -345,10 +369,17 @@ export class ActivitiesService {
   }
 
   // Get upcoming activities (due today or overdue)
-  async getUpcoming(tenantId: string, userId?: string, limit = 10) {
+  async getUpcoming(tenantId: string, userId?: string, userRole?: string, limit = 10) {
     const now = new Date();
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
+
+    // Get RBAC createdBy filter
+    let createdByFilter = {};
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      createdByFilter = await this.rbac.getCreatedByFilter(rbacContext);
+    }
 
     const where: Prisma.ActivityWhereInput = {
       tenantId,
@@ -356,7 +387,7 @@ export class ActivitiesService {
       dueDate: {
         lte: endOfDay,
       },
-      ...(userId && { createdById: userId }),
+      ...createdByFilter,
     };
 
     return this.prisma.activity.findMany({
@@ -389,16 +420,23 @@ export class ActivitiesService {
   }
 
   // Get activity statistics
-  async getStatistics(tenantId: string, userId?: string) {
+  async getStatistics(tenantId: string, userId?: string, userRole?: string) {
     const now = new Date();
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // Get RBAC createdBy filter
+    let createdByFilter = {};
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      createdByFilter = await this.rbac.getCreatedByFilter(rbacContext);
+    }
+
     const where: Prisma.ActivityWhereInput = {
       tenantId,
-      ...(userId && { createdById: userId }),
+      ...createdByFilter,
     };
 
     const [
