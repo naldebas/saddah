@@ -6,10 +6,14 @@ import { UpdateLeadDto } from './dto/update-lead.dto';
 import { QueryLeadsDto } from './dto/query-leads.dto';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { ScoreLeadDto } from './dto/score-lead.dto';
+import { LeadRecommendationsService } from './lead-recommendations.service';
 
 @Injectable()
 export class LeadsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private recommendationsService: LeadRecommendationsService,
+  ) {}
 
   /**
    * Calculate lead score automatically based on provided data
@@ -228,7 +232,13 @@ export class LeadsService {
       throw new NotFoundException('العميل المحتمل غير موجود');
     }
 
-    return lead;
+    // Generate AI recommendations
+    const recommendations = this.recommendationsService.generateRecommendations(lead);
+
+    return {
+      ...lead,
+      recommendations,
+    };
   }
 
   async update(tenantId: string, id: string, dto: UpdateLeadDto) {

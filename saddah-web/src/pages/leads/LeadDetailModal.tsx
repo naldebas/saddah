@@ -9,6 +9,7 @@ import {
   Trash2,
   ArrowRight,
   User,
+  Sparkles,
 } from 'lucide-react';
 import {
   Button,
@@ -21,6 +22,7 @@ import {
   Select,
 } from '@/components/ui';
 import { leadsApi, type Lead, type UpdateLeadDto, type ConvertLeadDto } from '@/services/leads.api';
+import { LeadRecommendations, type LeadRecommendation } from '@/components/leads/LeadRecommendations';
 import { pipelinesApi, type Pipeline } from '@/services/deals.api';
 
 interface LeadDetailModalProps {
@@ -83,7 +85,7 @@ export function LeadDetailModal({
   leadId,
   onLeadUpdated,
 }: LeadDetailModalProps) {
-  const [lead, setLead] = useState<Lead | null>(null);
+  const [lead, setLead] = useState<(Lead & { recommendations?: LeadRecommendation[] }) | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -385,6 +387,17 @@ export function LeadDetailModal({
                         </div>
                         <span className="text-lg font-bold text-primary-700">{lead.score}</span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* AI Recommendations Section */}
+                  {lead.recommendations && lead.recommendations.length > 0 && (
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                      <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-purple-500" />
+                        توصيات الذكاء الاصطناعي
+                      </h3>
+                      <LeadRecommendations recommendations={lead.recommendations} />
                     </div>
                   )}
 
