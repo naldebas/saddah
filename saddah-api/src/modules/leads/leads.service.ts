@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateLeadDto, LeadStatus } from './dto/create-lead.dto';
@@ -8,12 +8,39 @@ import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { ScoreLeadDto } from './dto/score-lead.dto';
 import { LeadRecommendationsService } from './lead-recommendations.service';
 
+// Roles that can see all leads
+const FULL_ACCESS_ROLES = ['admin', 'manager'];
+
 @Injectable()
 export class LeadsService {
   constructor(
     private prisma: PrismaService,
     private recommendationsService: LeadRecommendationsService,
   ) {}
+
+  /**
+   * Check if user has access to a specific lead
+   */
+  private canAccessLead(lead: { ownerId: string | null }, userId: string, userRole: string): boolean {
+    // Admin and manager can access all leads
+    if (FULL_ACCESS_ROLES.includes(userRole)) {
+      return true;
+    }
+    // Other roles can only access their own leads
+    return lead.ownerId === userId;
+  }
+
+  /**
+   * Get ownership filter based on user role
+   */
+  private getOwnershipFilter(userId: string, userRole: string): Prisma.LeadWhereInput {
+    // Admin and manager see all leads
+    if (FULL_ACCESS_ROLES.includes(userRole)) {
+      return {};
+    }
+    // Other roles see only their own leads
+    return { ownerId: userId };
+  }
 
   /**
    * Calculate lead score automatically based on provided data
@@ -147,7 +174,7 @@ export class LeadsService {
     return lead;
   }
 
-  async findAll(tenantId: string, query: QueryLeadsDto) {
+  async findAll(tenantId: string, userId: string, userRole: string, query: QueryLeadsDto) {
     const {
       page = 1,
       limit = 20,
@@ -171,8 +198,12 @@ export class LeadsService {
           }
         : undefined;
 
+    // Get ownership filter based on role
+    const ownershipFilter = this.getOwnershipFilter(userId, userRole);
+
     const where: Prisma.LeadWhereInput = {
       tenantId,
+      ...ownershipFilter,
       ...(search && {
         OR: [
           { firstName: { contains: search, mode: 'insensitive' as const } },
@@ -214,7 +245,7 @@ export class LeadsService {
     };
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(tenantId: string, id: string, userId?: string, userRole?: string) {
     const lead = await this.prisma.lead.findFirst({
       where: { id, tenantId },
       include: {
@@ -232,6 +263,11 @@ export class LeadsService {
       throw new NotFoundException('العميل المحتمل غير موجود');
     }
 
+    // Check access permissions if userId and role are provided
+    if (userId && userRole && !this.canAccessLead(lead, userId, userRole)) {
+      throw new ForbiddenException('لا يمكنك الوصول إلى هذا العميل المحتمل');
+    }
+
     // Generate AI recommendations
     const recommendations = this.recommendationsService.generateRecommendations(lead);
 
@@ -241,8 +277,8 @@ export class LeadsService {
     };
   }
 
-  async update(tenantId: string, id: string, dto: UpdateLeadDto) {
-    const existingLead = await this.findOne(tenantId, id);
+  async update(tenantId: string, id: string, dto: UpdateLeadDto, userId?: string, userRole?: string) {
+    const existingLead = await this.findOne(tenantId, id, userId, userRole);
 
     // Merge existing data with updates for score calculation
     const mergedData = {
@@ -289,8 +325,8 @@ export class LeadsService {
     return updatedLead;
   }
 
-  async updateStatus(tenantId: string, id: string, status: LeadStatus) {
-    await this.findOne(tenantId, id);
+  async updateStatus(tenantId: string, id: string, status: LeadStatus, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     return this.prisma.lead.update({
       where: { id },
@@ -303,8 +339,8 @@ export class LeadsService {
     });
   }
 
-  async score(tenantId: string, id: string, dto: ScoreLeadDto) {
-    const lead = await this.findOne(tenantId, id);
+  async score(tenantId: string, id: string, dto: ScoreLeadDto, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     // Update lead score and create history entry
     const [updatedLead] = await this.prisma.$transaction([
@@ -333,8 +369,8 @@ export class LeadsService {
     return updatedLead;
   }
 
-  async convert(tenantId: string, id: string, userId: string, dto: ConvertLeadDto) {
-    const lead = await this.findOne(tenantId, id);
+  async convert(tenantId: string, id: string, userId: string, userRole: string, dto: ConvertLeadDto) {
+    const lead = await this.findOne(tenantId, id, userId, userRole);
 
     if (lead.status === LeadStatus.CONVERTED) {
       throw new BadRequestException('تم تحويل هذا العميل المحتمل مسبقاً');
@@ -408,8 +444,8 @@ export class LeadsService {
     };
   }
 
-  async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+  async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
+    await this.findOne(tenantId, id, userId, userRole);
 
     await this.prisma.lead.delete({
       where: { id },
@@ -418,7 +454,14 @@ export class LeadsService {
     return { message: 'تم حذف العميل المحتمل بنجاح' };
   }
 
-  async getStatistics(tenantId: string) {
+  async getStatistics(tenantId: string, userId?: string, userRole?: string) {
+    // Get ownership filter based on role
+    const ownershipFilter = userId && userRole
+      ? this.getOwnershipFilter(userId, userRole)
+      : {};
+
+    const baseWhere = { tenantId, ...ownershipFilter };
+
     const [
       totalLeads,
       newLeads,
@@ -428,22 +471,22 @@ export class LeadsService {
       leadsByPropertyType,
       avgScore,
     ] = await Promise.all([
-      this.prisma.lead.count({ where: { tenantId } }),
-      this.prisma.lead.count({ where: { tenantId, status: 'new' } }),
-      this.prisma.lead.count({ where: { tenantId, status: 'qualified' } }),
-      this.prisma.lead.count({ where: { tenantId, status: 'converted' } }),
+      this.prisma.lead.count({ where: baseWhere }),
+      this.prisma.lead.count({ where: { ...baseWhere, status: 'new' } }),
+      this.prisma.lead.count({ where: { ...baseWhere, status: 'qualified' } }),
+      this.prisma.lead.count({ where: { ...baseWhere, status: 'converted' } }),
       this.prisma.lead.groupBy({
         by: ['source'],
-        where: { tenantId },
+        where: baseWhere,
         _count: { id: true },
       }),
       this.prisma.lead.groupBy({
         by: ['propertyType'],
-        where: { tenantId, propertyType: { not: null } },
+        where: { ...baseWhere, propertyType: { not: null } },
         _count: { id: true },
       }),
       this.prisma.lead.aggregate({
-        where: { tenantId },
+        where: baseWhere,
         _avg: { score: true },
       }),
     ]);

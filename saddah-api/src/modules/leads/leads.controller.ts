@@ -24,13 +24,14 @@ import { QueryLeadsDto } from './dto/query-leads.dto';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { ScoreLeadDto } from './dto/score-lead.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 import { RequirePermission } from '@/modules/auth/decorators/permission.decorator';
 import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
 
 @ApiTags('Leads')
 @ApiBearerAuth('access-token')
 @Controller('leads')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
@@ -52,17 +53,23 @@ export class LeadsController {
   @ApiResponse({ status: 200, description: 'قائمة العملاء المحتملين' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
     @Query() query: QueryLeadsDto,
   ) {
-    return this.leadsService.findAll(tenantId, query);
+    return this.leadsService.findAll(tenantId, userId, userRole, query);
   }
 
   @Get('statistics')
   @RequirePermission('leads.read')
   @ApiOperation({ summary: 'الحصول على إحصائيات العملاء المحتملين' })
   @ApiResponse({ status: 200, description: 'إحصائيات العملاء المحتملين' })
-  getStatistics(@CurrentUser('tenantId') tenantId: string) {
-    return this.leadsService.getStatistics(tenantId);
+  getStatistics(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
+  ) {
+    return this.leadsService.getStatistics(tenantId, userId, userRole);
   }
 
   @Get(':id')
@@ -72,9 +79,11 @@ export class LeadsController {
   @ApiResponse({ status: 404, description: 'العميل المحتمل غير موجود' })
   findOne(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.leadsService.findOne(tenantId, id);
+    return this.leadsService.findOne(tenantId, id, userId, userRole);
   }
 
   @Patch(':id')
@@ -84,10 +93,12 @@ export class LeadsController {
   @ApiResponse({ status: 404, description: 'العميل المحتمل غير موجود' })
   update(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateLeadDto,
   ) {
-    return this.leadsService.update(tenantId, id, dto);
+    return this.leadsService.update(tenantId, id, dto, userId, userRole);
   }
 
   @Patch(':id/status/:status')
@@ -96,10 +107,12 @@ export class LeadsController {
   @ApiResponse({ status: 200, description: 'تم تغيير الحالة بنجاح' })
   updateStatus(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('status') status: LeadStatus,
   ) {
-    return this.leadsService.updateStatus(tenantId, id, status);
+    return this.leadsService.updateStatus(tenantId, id, status, userId, userRole);
   }
 
   @Patch(':id/score')
@@ -108,10 +121,12 @@ export class LeadsController {
   @ApiResponse({ status: 200, description: 'تم تصنيف العميل المحتمل بنجاح' })
   score(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ScoreLeadDto,
   ) {
-    return this.leadsService.score(tenantId, id, dto);
+    return this.leadsService.score(tenantId, id, dto, userId, userRole);
   }
 
   @Post(':id/convert')
@@ -122,10 +137,11 @@ export class LeadsController {
   convert(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ConvertLeadDto,
   ) {
-    return this.leadsService.convert(tenantId, id, userId, dto);
+    return this.leadsService.convert(tenantId, id, userId, userRole, dto);
   }
 
   @Delete(':id')
@@ -135,8 +151,10 @@ export class LeadsController {
   @ApiResponse({ status: 404, description: 'العميل المحتمل غير موجود' })
   remove(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @CurrentUser('role') userRole: string,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.leadsService.remove(tenantId, id);
+    return this.leadsService.remove(tenantId, id, userId, userRole);
   }
 }
