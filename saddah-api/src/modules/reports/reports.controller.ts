@@ -15,7 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
-import { JwtPayload } from '@/modules/auth/interfaces/jwt-payload.interface';
+import { AuthenticatedUser } from '@/modules/auth/interfaces/jwt-payload.interface';
 import { ReportsService } from './reports.service';
 import { ReportQueryDto, ExportQueryDto } from './dto/report-query.dto';
 
@@ -37,40 +37,40 @@ export class ReportsController {
   @ApiOperation({ summary: 'Get sales report' })
   @ApiResponse({ status: 200, description: 'Returns sales analytics' })
   async getSalesReport(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getSalesReport(user.tenantId, user.sub, user.role, query);
+    return this.reportsService.getSalesReport(user.tenantId, user.id, user.role, query);
   }
 
   @Get('leads')
   @ApiOperation({ summary: 'Get leads report' })
   @ApiResponse({ status: 200, description: 'Returns leads analytics' })
   async getLeadsReport(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getLeadsReport(user.tenantId, user.sub, user.role, query);
+    return this.reportsService.getLeadsReport(user.tenantId, user.id, user.role, query);
   }
 
   @Get('activities')
   @ApiOperation({ summary: 'Get activities report' })
   @ApiResponse({ status: 200, description: 'Returns activities analytics' })
   async getActivitiesReport(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getActivitiesReport(user.tenantId, user.sub, user.role, query);
+    return this.reportsService.getActivitiesReport(user.tenantId, user.id, user.role, query);
   }
 
   @Get('contacts')
   @ApiOperation({ summary: 'Get contacts report' })
   @ApiResponse({ status: 200, description: 'Returns contacts analytics' })
   async getContactsReport(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: ReportQueryDto,
   ) {
-    return this.reportsService.getContactsReport(user.tenantId, user.sub, user.role, query);
+    return this.reportsService.getContactsReport(user.tenantId, user.id, user.role, query);
   }
 
   // ============================================
@@ -81,11 +81,11 @@ export class ReportsController {
   @ApiOperation({ summary: 'Export deals to CSV' })
   @ApiResponse({ status: 200, description: 'Returns CSV file' })
   async exportDeals(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: ExportQueryDto,
     @Res() res: Response,
   ) {
-    const csv = await this.reportsService.exportDeals(user.tenantId, user.sub, user.role, query);
+    const csv = await this.reportsService.exportDeals(user.tenantId, user.id, user.role, query);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=deals-${new Date().toISOString().split('T')[0]}.csv`);
@@ -97,11 +97,11 @@ export class ReportsController {
   @ApiOperation({ summary: 'Export leads to CSV' })
   @ApiResponse({ status: 200, description: 'Returns CSV file' })
   async exportLeads(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: ExportQueryDto,
     @Res() res: Response,
   ) {
-    const csv = await this.reportsService.exportLeads(user.tenantId, user.sub, user.role, query);
+    const csv = await this.reportsService.exportLeads(user.tenantId, user.id, user.role, query);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=leads-${new Date().toISOString().split('T')[0]}.csv`);
@@ -112,11 +112,11 @@ export class ReportsController {
   @ApiOperation({ summary: 'Export activities to CSV' })
   @ApiResponse({ status: 200, description: 'Returns CSV file' })
   async exportActivities(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: ExportQueryDto,
     @Res() res: Response,
   ) {
-    const csv = await this.reportsService.exportActivities(user.tenantId, user.sub, user.role, query);
+    const csv = await this.reportsService.exportActivities(user.tenantId, user.id, user.role, query);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=activities-${new Date().toISOString().split('T')[0]}.csv`);
