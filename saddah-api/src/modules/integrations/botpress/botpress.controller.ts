@@ -36,7 +36,7 @@ import {
 @ApiTags('Botpress Settings')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/settings/botpress')
+@Controller('settings/botpress')
 export class BotpressController {
   constructor(
     private readonly configService: BotpressConfigService,
@@ -118,7 +118,7 @@ export class BotpressController {
 @ApiTags('Botpress Conversations')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/botpress/conversations')
+@Controller('botpress/conversations')
 export class BotpressConversationsController {
   constructor(
     private readonly configService: BotpressConfigService,

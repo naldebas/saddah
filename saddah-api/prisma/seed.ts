@@ -180,11 +180,13 @@ async function main() {
   ];
 
   const companies: any[] = [];
-  for (const companyData of companiesData) {
+  const owners = [salesManager, salesRep1, salesRep2, salesManager, salesRep1];
+  for (let i = 0; i < companiesData.length; i++) {
     const company = await prisma.company.create({
       data: {
         tenantId: tenant.id,
-        ...companyData,
+        ownerId: owners[i % owners.length].id,
+        ...companiesData[i],
       },
     });
     companies.push(company);

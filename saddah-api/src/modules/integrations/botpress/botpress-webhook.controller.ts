@@ -20,7 +20,7 @@ import { BotpressSyncService } from './botpress-sync.service';
 import { BotpressWebhookDto } from './dto';
 
 @ApiTags('Botpress Webhooks')
-@Controller('api/v1/webhooks/botpress')
+@Controller('webhooks/botpress')
 export class BotpressWebhookController {
   private readonly logger = new Logger(BotpressWebhookController.name);
 

@@ -11,8 +11,98 @@ import { ScoreLeadDto } from './dto/score-lead.dto';
 export class LeadsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Calculate lead score automatically based on provided data
+   * Returns score (0-100) and grade (A/B/C/D)
+   */
+  private calculateLeadScore(data: {
+    email?: string;
+    phone?: string;
+    whatsapp?: string;
+    budget?: number;
+    propertyType?: string;
+    timeline?: string;
+    location?: string;
+    financingNeeded?: boolean;
+    notes?: string;
+  }): { score: number; grade: string; factors: Record<string, number> } {
+    const factors: Record<string, number> = {};
+    let totalScore = 0;
+
+    // معلومات الاتصال (25 نقطة)
+    if (data.email) {
+      factors.email = 10;
+      totalScore += 10;
+    }
+    if (data.phone) {
+      factors.phone = 10;
+      totalScore += 10;
+    }
+    if (data.whatsapp) {
+      factors.whatsapp = 5;
+      totalScore += 5;
+    }
+
+    // الميزانية (25 نقطة) - ميزانية أعلى = نقاط أكثر
+    if (data.budget) {
+      let budgetScore = 10;
+      if (data.budget >= 500000) budgetScore = 15;
+      if (data.budget >= 1000000) budgetScore = 20;
+      if (data.budget >= 2000000) budgetScore = 25;
+      factors.budget = budgetScore;
+      totalScore += budgetScore;
+    }
+
+    // نوع العقار (15 نقطة)
+    if (data.propertyType) {
+      factors.propertyType = 15;
+      totalScore += 15;
+    }
+
+    // الجدول الزمني (20 نقطة) - وقت أقصر = نقاط أكثر
+    if (data.timeline) {
+      let timelineScore = 10;
+      const timeline = data.timeline.toLowerCase();
+      if (timeline.includes('immediate') || timeline.includes('فوري') || timeline.includes('1_month')) {
+        timelineScore = 20;
+      } else if (timeline.includes('3_month') || timeline.includes('1-3')) {
+        timelineScore = 15;
+      } else if (timeline.includes('6_month')) {
+        timelineScore = 10;
+      }
+      factors.timeline = timelineScore;
+      totalScore += timelineScore;
+    }
+
+    // الموقع (10 نقاط)
+    if (data.location) {
+      factors.location = 10;
+      totalScore += 10;
+    }
+
+    // التمويل محدد (5 نقاط)
+    if (data.financingNeeded !== undefined) {
+      factors.financing = 5;
+      totalScore += 5;
+    }
+
+    // Ensure score is between 0-100
+    totalScore = Math.min(100, Math.max(0, totalScore));
+
+    // Calculate grade
+    let grade = 'D';
+    if (totalScore >= 80) grade = 'A';
+    else if (totalScore >= 60) grade = 'B';
+    else if (totalScore >= 40) grade = 'C';
+
+    return { score: totalScore, grade, factors };
+  }
+
   async create(tenantId: string, userId: string, dto: CreateLeadDto) {
-    return this.prisma.lead.create({
+    // Calculate automatic score
+    const { score, grade, factors } = this.calculateLeadScore(dto);
+
+    const lead = await this.prisma.lead.create({
       data: {
         tenantId,
         ownerId: dto.ownerId || userId,
@@ -30,6 +120,8 @@ export class LeadsService {
         financingNeeded: dto.financingNeeded,
         notes: dto.notes,
         tags: dto.tags || [],
+        score,
+        scoreGrade: grade,
       },
       include: {
         owner: {
@@ -37,6 +129,18 @@ export class LeadsService {
         },
       },
     });
+
+    // Create initial score history
+    await this.prisma.leadScoreHistory.create({
+      data: {
+        leadId: lead.id,
+        score,
+        grade,
+        factors,
+      },
+    });
+
+    return lead;
   }
 
   async findAll(tenantId: string, query: QueryLeadsDto) {
@@ -128,17 +232,51 @@ export class LeadsService {
   }
 
   async update(tenantId: string, id: string, dto: UpdateLeadDto) {
-    await this.findOne(tenantId, id);
+    const existingLead = await this.findOne(tenantId, id);
 
-    return this.prisma.lead.update({
+    // Merge existing data with updates for score calculation
+    const mergedData = {
+      email: dto.email ?? existingLead.email ?? undefined,
+      phone: dto.phone ?? existingLead.phone ?? undefined,
+      whatsapp: dto.whatsapp ?? existingLead.whatsapp ?? undefined,
+      budget: dto.budget ?? (existingLead.budget ? Number(existingLead.budget) : undefined),
+      propertyType: dto.propertyType ?? existingLead.propertyType ?? undefined,
+      timeline: dto.timeline ?? existingLead.timeline ?? undefined,
+      location: dto.location ?? existingLead.location ?? undefined,
+      financingNeeded: dto.financingNeeded ?? existingLead.financingNeeded ?? undefined,
+      notes: dto.notes ?? existingLead.notes ?? undefined,
+    };
+
+    // Recalculate score with merged data
+    const { score, grade, factors } = this.calculateLeadScore(mergedData);
+
+    const updatedLead = await this.prisma.lead.update({
       where: { id },
-      data: dto,
+      data: {
+        ...dto,
+        score,
+        scoreGrade: grade,
+      },
       include: {
         owner: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
     });
+
+    // Record score change in history if score changed
+    if (score !== existingLead.score) {
+      await this.prisma.leadScoreHistory.create({
+        data: {
+          leadId: id,
+          score,
+          grade,
+          factors,
+        },
+      });
+    }
+
+    return updatedLead;
   }
 
   async updateStatus(tenantId: string, id: string, status: LeadStatus) {
