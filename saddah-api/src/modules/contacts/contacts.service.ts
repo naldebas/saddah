@@ -178,7 +178,16 @@ export class ContactsService {
   }
 
   async update(tenantId: string, id: string, dto: UpdateContactDto, userId?: string, userRole?: string) {
-    await this.findOne(tenantId, id, userId, userRole);
+    const contact = await this.findOne(tenantId, id, userId, userRole);
+
+    // Check edit permission
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canEdit = await this.rbac.canEditResource(contact, rbacContext);
+      if (!canEdit) {
+        throw new ForbiddenException('لا يمكنك تعديل جهة الاتصال هذه');
+      }
+    }
 
     return this.prisma.contact.update({
       where: { id },
@@ -213,7 +222,16 @@ export class ContactsService {
   }
 
   async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
-    await this.findOne(tenantId, id, userId, userRole);
+    const contact = await this.findOne(tenantId, id, userId, userRole);
+
+    // Check delete permission - sales reps cannot delete
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canDelete = await this.rbac.canDeleteResource(contact, rbacContext);
+      if (!canDelete) {
+        throw new ForbiddenException('لا يمكنك حذف جهات الاتصال');
+      }
+    }
 
     // Soft delete
     await this.prisma.contact.update({

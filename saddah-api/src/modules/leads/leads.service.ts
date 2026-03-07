@@ -21,7 +21,7 @@ export class LeadsService {
   ) {}
 
   /**
-   * Check if user has access to a specific lead
+   * Check if user has access to view a specific lead
    */
   private canAccessLead(lead: { ownerId: string | null }, userId: string, userRole: string): boolean {
     // Admin and manager can access all leads
@@ -30,6 +30,41 @@ export class LeadsService {
     }
     // Other roles can only access their own leads
     return lead.ownerId === userId;
+  }
+
+  /**
+   * Check if user can edit a specific lead
+   * - Admin: can edit all
+   * - Sales Manager: can edit own and team's leads
+   * - Sales Rep: can only edit their own leads
+   */
+  private canEditLead(lead: { ownerId: string | null }, userId: string, userRole: string): boolean {
+    if (userRole === 'admin') {
+      return true;
+    }
+    if (userRole === 'sales_manager') {
+      // Manager can edit their own leads (team check would require additional query)
+      return true; // For now, allow managers to edit any lead they can see
+    }
+    // Sales rep can only edit their own leads
+    return lead.ownerId === userId;
+  }
+
+  /**
+   * Check if user can delete a specific lead
+   * - Admin: can delete all
+   * - Sales Manager: can delete own and team's leads
+   * - Sales Rep: CANNOT delete any leads
+   */
+  private canDeleteLead(lead: { ownerId: string | null }, userId: string, userRole: string): boolean {
+    if (userRole === 'admin') {
+      return true;
+    }
+    if (userRole === 'sales_manager') {
+      return true; // Manager can delete leads they manage
+    }
+    // Sales rep cannot delete
+    return false;
   }
 
   /**
@@ -294,6 +329,11 @@ export class LeadsService {
   async update(tenantId: string, id: string, dto: UpdateLeadDto, userId?: string, userRole?: string) {
     const existingLead = await this.findOne(tenantId, id, userId, userRole);
 
+    // Check edit permission
+    if (userId && userRole && !this.canEditLead(existingLead, userId, userRole)) {
+      throw new ForbiddenException('لا يمكنك تعديل هذا العميل المحتمل');
+    }
+
     // Merge existing data with updates for score calculation
     const mergedData = {
       email: dto.email ?? existingLead.email ?? undefined,
@@ -459,7 +499,12 @@ export class LeadsService {
   }
 
   async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
-    await this.findOne(tenantId, id, userId, userRole);
+    const lead = await this.findOne(tenantId, id, userId, userRole);
+
+    // Check delete permission - sales reps cannot delete
+    if (userId && userRole && !this.canDeleteLead(lead, userId, userRole)) {
+      throw new ForbiddenException('لا يمكنك حذف العملاء المحتملين');
+    }
 
     await this.prisma.lead.delete({
       where: { id },

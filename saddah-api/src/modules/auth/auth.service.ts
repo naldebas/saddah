@@ -239,15 +239,18 @@ export class AuthService {
       sales_rep: [
         'contacts.view',
         'contacts.create',
-        'contacts.edit',
+        'contacts.edit', // Service enforces ownership - can only edit own contacts
         'companies.view',
         // companies.create removed - companies created during lead conversion
         'deals.view',
-        'deals.edit',
+        'deals.edit', // Service enforces ownership - can only edit own deals
         // deals.create removed - deals created from lead conversion only
         'leads.view',
-        'leads.edit',
-        'activities.*',
+        'leads.edit', // Service enforces ownership - can only edit own leads
+        'activities.view',
+        'activities.create',
+        'activities.edit', // Service enforces ownership - can only edit own activities
+        // delete permissions removed - sales reps cannot delete anything
         'conversations.view',
         'conversations.respond',
       ],

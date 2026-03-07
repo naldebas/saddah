@@ -172,4 +172,68 @@ export class RbacService {
     // Regular user sees only their own data
     return [userId];
   }
+
+  /**
+   * Check if user can edit a specific resource
+   * - Admin: can edit all
+   * - Sales Manager: can edit own and team's resources
+   * - Sales Rep: can only edit their own resources
+   */
+  async canEditResource(
+    resource: { ownerId?: string | null; createdById?: string | null },
+    context: RbacContext,
+  ): Promise<boolean> {
+    const { userId, userRole, tenantId } = context;
+    const resourceOwnerId = resource.ownerId || resource.createdById;
+
+    // Admin can edit everything
+    if (this.isAdmin(userRole)) {
+      return true;
+    }
+
+    // If no owner, allow edit (unassigned resources)
+    if (!resourceOwnerId) {
+      return this.isTeamLeader(userRole); // Only managers can edit unassigned
+    }
+
+    // Team leader can edit team members' resources
+    if (this.isTeamLeader(userRole)) {
+      const teamMemberIds = await this.getTeamMemberIds(userId, tenantId);
+      return teamMemberIds.includes(resourceOwnerId);
+    }
+
+    // Sales rep can only edit their own resources
+    return resourceOwnerId === userId;
+  }
+
+  /**
+   * Check if user can delete a specific resource
+   * - Admin: can delete all
+   * - Sales Manager: can delete own and team's resources
+   * - Sales Rep: CANNOT delete any resources
+   */
+  async canDeleteResource(
+    resource: { ownerId?: string | null; createdById?: string | null },
+    context: RbacContext,
+  ): Promise<boolean> {
+    const { userId, userRole, tenantId } = context;
+    const resourceOwnerId = resource.ownerId || resource.createdById;
+
+    // Admin can delete everything
+    if (this.isAdmin(userRole)) {
+      return true;
+    }
+
+    // Team leader can delete team members' resources
+    if (this.isTeamLeader(userRole)) {
+      if (!resourceOwnerId) {
+        return true; // Managers can delete unassigned resources
+      }
+      const teamMemberIds = await this.getTeamMemberIds(userId, tenantId);
+      return teamMemberIds.includes(resourceOwnerId);
+    }
+
+    // Sales rep CANNOT delete any resources
+    return false;
+  }
 }

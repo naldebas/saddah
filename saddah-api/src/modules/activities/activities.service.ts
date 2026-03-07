@@ -218,7 +218,16 @@ export class ActivitiesService {
   }
 
   async update(tenantId: string, id: string, dto: UpdateActivityDto, userId?: string, userRole?: string) {
-    await this.findOne(tenantId, id, userId, userRole);
+    const activity = await this.findOne(tenantId, id, userId, userRole);
+
+    // Check edit permission - sales reps can only edit their own activities
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canEdit = await this.rbac.canEditResource(activity, rbacContext);
+      if (!canEdit) {
+        throw new ForbiddenException('لا يمكنك تعديل هذا النشاط');
+      }
+    }
 
     // Validate contact exists if being updated
     if (dto.contactId) {
@@ -359,7 +368,16 @@ export class ActivitiesService {
   }
 
   async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
-    await this.findOne(tenantId, id, userId, userRole);
+    const activity = await this.findOne(tenantId, id, userId, userRole);
+
+    // Check delete permission - sales reps cannot delete activities
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canDelete = await this.rbac.canDeleteResource(activity, rbacContext);
+      if (!canDelete) {
+        throw new ForbiddenException('لا يمكنك حذف الأنشطة');
+      }
+    }
 
     await this.prisma.activity.delete({
       where: { id },

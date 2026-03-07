@@ -237,6 +237,15 @@ export class DealsService {
   async update(tenantId: string, id: string, dto: UpdateDealDto, userId?: string, userRole?: string) {
     const deal = await this.findOne(tenantId, id, userId, userRole);
 
+    // Check edit permission
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canEdit = await this.rbac.canEditResource(deal, rbacContext);
+      if (!canEdit) {
+        throw new ForbiddenException('لا يمكنك تعديل هذه الصفقة');
+      }
+    }
+
     // If updating stage, verify it belongs to same pipeline
     if (dto.stageId && dto.stageId !== deal.stageId) {
       const stage = await this.prisma.pipelineStage.findFirst({
@@ -444,7 +453,16 @@ export class DealsService {
   }
 
   async remove(tenantId: string, id: string, userId?: string, userRole?: string) {
-    await this.findOne(tenantId, id, userId, userRole);
+    const deal = await this.findOne(tenantId, id, userId, userRole);
+
+    // Check delete permission - sales reps cannot delete
+    if (userId && userRole) {
+      const rbacContext: RbacContext = { userId, userRole, tenantId };
+      const canDelete = await this.rbac.canDeleteResource(deal, rbacContext);
+      if (!canDelete) {
+        throw new ForbiddenException('لا يمكنك حذف الصفقات');
+      }
+    }
 
     await this.prisma.deal.delete({
       where: { id },
