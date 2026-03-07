@@ -241,10 +241,10 @@ export class AuthService {
         'contacts.create',
         'contacts.edit',
         'companies.view',
-        'companies.create',
+        // companies.create removed - companies created during lead conversion
         'deals.view',
-        'deals.create',
         'deals.edit',
+        // deals.create removed - deals created from lead conversion only
         'leads.view',
         'leads.edit',
         'activities.*',
