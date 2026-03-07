@@ -2,6 +2,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '@/prisma/prisma.module';
+import { LeadsModule } from '@/modules/leads/leads.module';
 
 // Controllers
 import { BotpressController, BotpressConversationsController } from './botpress.controller';
@@ -15,7 +16,7 @@ import { BotpressSyncService } from './botpress-sync.service';
 import { BotpressQualificationProcessor } from './botpress-qualification.processor';
 
 @Module({
-  imports: [ConfigModule, PrismaModule],
+  imports: [ConfigModule, PrismaModule, forwardRef(() => LeadsModule)],
   controllers: [
     BotpressController,
     BotpressConversationsController,

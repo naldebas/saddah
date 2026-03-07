@@ -1,10 +1,11 @@
 // src/modules/integrations/botpress/botpress-qualification.processor.ts
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BotpressConfigService } from './botpress-config.service';
 import { BotpressSyncService } from './botpress-sync.service';
 import { QualificationData, BotpressInternalEvents } from './interfaces';
+import { LeadAssignmentService } from '@/modules/leads/lead-assignment.service';
 
 export interface QualificationProcessResult {
   success: boolean;
@@ -12,6 +13,7 @@ export interface QualificationProcessResult {
   dealId?: string;
   isNewLead?: boolean;
   isNewDeal?: boolean;
+  assignedTo?: string;
   error?: string;
 }
 
@@ -24,6 +26,8 @@ export class BotpressQualificationProcessor {
     private readonly configService: BotpressConfigService,
     private readonly syncService: BotpressSyncService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(forwardRef(() => LeadAssignmentService))
+    private readonly leadAssignmentService: LeadAssignmentService,
   ) {}
 
   /**
@@ -97,10 +101,28 @@ export class BotpressQualificationProcessor {
         lead = await this.createLead(tenantId, conversation.id, data);
         isNewLead = true;
 
+        // Auto-assign conversation to lead owner
+        if (lead.ownerId) {
+          await this.prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              assignedToId: lead.ownerId,
+              status: 'active',
+            },
+          });
+
+          // Create notification for assigned sales rep
+          await this.createLeadNotification(tenantId, lead);
+
+          // Log activity for the lead creation
+          await this.logLeadCreationActivity(tenantId, lead, conversation.id, data);
+        }
+
         this.eventEmitter.emit(BotpressInternalEvents.LEAD_CREATED, {
           tenantId,
           leadId: lead.id,
           conversationId: conversation.id,
+          assignedTo: lead.ownerId,
           qualificationData: data,
         });
       } else if (lead) {
@@ -174,6 +196,7 @@ export class BotpressQualificationProcessor {
         dealId: deal?.id,
         isNewLead,
         isNewDeal,
+        assignedTo: lead?.ownerId || undefined,
       };
     } catch (error: any) {
       this.logger.error(
@@ -185,7 +208,7 @@ export class BotpressQualificationProcessor {
   }
 
   /**
-   * Create a new lead from qualification data
+   * Create a new lead from qualification data with auto-assignment
    */
   private async createLead(
     tenantId: string,
@@ -197,9 +220,13 @@ export class BotpressQualificationProcessor {
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
-    return this.prisma.lead.create({
+    // Get next assignee using round-robin
+    const assignedOwnerId = await this.leadAssignmentService.getNextAssignee(tenantId);
+
+    const lead = await this.prisma.lead.create({
       data: {
         tenantId,
+        ownerId: assignedOwnerId,
         firstName,
         lastName,
         phone: data.phone,
@@ -209,6 +236,7 @@ export class BotpressQualificationProcessor {
         sourceId: conversationId,
         status: 'qualified',
         score: data.seriousnessScore,
+        scoreGrade: this.calculateGrade(data.seriousnessScore),
         propertyType: data.propertyType,
         budget: data.budget?.max,
         location: data.location?.city,
@@ -224,7 +252,93 @@ export class BotpressQualificationProcessor {
           budgetCurrency: data.budget?.currency,
         },
       },
+      include: {
+        owner: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+      },
     });
+
+    this.logger.log(
+      `Created lead ${lead.id} from bot, assigned to ${lead.owner?.firstName} ${lead.owner?.lastName}`,
+    );
+
+    return lead;
+  }
+
+  /**
+   * Calculate score grade
+   */
+  private calculateGrade(score: number): string {
+    if (score >= 80) return 'A';
+    if (score >= 60) return 'B';
+    if (score >= 40) return 'C';
+    return 'D';
+  }
+
+  /**
+   * Create notification for sales rep about new lead
+   */
+  private async createLeadNotification(tenantId: string, lead: any) {
+    if (!lead.ownerId) return;
+
+    await this.prisma.notification.create({
+      data: {
+        tenantId,
+        userId: lead.ownerId,
+        type: 'new_lead',
+        title: 'عميل محتمل جديد',
+        message: `تم تعيين عميل محتمل جديد لك: ${lead.firstName} ${lead.lastName || ''} - ${lead.phone}`,
+        data: {
+          leadId: lead.id,
+          source: 'whatsapp_bot',
+          score: lead.score,
+          scoreGrade: lead.scoreGrade,
+        },
+      },
+    });
+
+    this.logger.log(`Created notification for user ${lead.ownerId} about lead ${lead.id}`);
+  }
+
+  /**
+   * Log activity for lead creation from bot
+   */
+  private async logLeadCreationActivity(
+    tenantId: string,
+    lead: any,
+    conversationId: string,
+    data: QualificationData,
+  ) {
+    if (!lead.ownerId) return;
+
+    await this.prisma.activity.create({
+      data: {
+        tenantId,
+        createdById: lead.ownerId,
+        type: 'note',
+        subject: 'عميل محتمل من بوت الواتساب',
+        description: `تم إنشاء عميل محتمل جديد من محادثة الواتساب.\n\n` +
+          `درجة الجدية: ${data.seriousnessScore}%\n` +
+          `نوع العقار: ${data.propertyType || 'غير محدد'}\n` +
+          `الميزانية: ${data.budget?.max?.toLocaleString() || 'غير محدد'} ${data.budget?.currency || 'ر.س'}\n` +
+          `الموقع: ${data.location?.city || 'غير محدد'}\n` +
+          `الجدول الزمني: ${data.timeline || 'غير محدد'}`,
+        isCompleted: true,
+        completedAt: new Date(),
+        metadata: {
+          leadId: lead.id,
+          conversationId,
+          source: 'whatsapp_bot',
+          qualificationScore: data.seriousnessScore,
+          propertyType: data.propertyType,
+          budget: data.budget?.max,
+          location: data.location?.city,
+        },
+      },
+    });
+
+    this.logger.log(`Created activity for lead ${lead.id} creation`);
   }
 
   /**
