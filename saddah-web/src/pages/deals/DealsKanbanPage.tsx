@@ -10,6 +10,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { Button, Badge, Avatar, Spinner, Select } from '@/components/ui';
+import { useAuthStore } from '@/stores/authStore';
 import {
   dealsApi,
   pipelinesApi,
@@ -75,6 +76,7 @@ interface KanbanColumnProps {
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (stageId: string) => void;
   onManageStages: () => void;
+  canCreateDeal: boolean;
 }
 
 function KanbanColumn({
@@ -85,6 +87,7 @@ function KanbanColumn({
   onDragOver,
   onDrop,
   onManageStages,
+  canCreateDeal,
 }: KanbanColumnProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -205,21 +208,26 @@ function KanbanColumn({
         ))}
       </div>
 
-      {/* Add Deal Button */}
-      <div className="p-2 border-t border-gray-200">
-        <button
-          onClick={() => onAddDeal(stage.id)}
-          className="w-full p-2 text-sm text-gray-500 hover:bg-gray-200 rounded-lg flex items-center justify-center gap-1 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          إضافة صفقة
-        </button>
-      </div>
+      {/* Add Deal Button - only show if user can create deals */}
+      {canCreateDeal && (
+        <div className="p-2 border-t border-gray-200">
+          <button
+            onClick={() => onAddDeal(stage.id)}
+            className="w-full p-2 text-sm text-gray-500 hover:bg-gray-200 rounded-lg flex items-center justify-center gap-1 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            إضافة صفقة
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 export function DealsKanbanPage() {
+  const user = useAuthStore((state) => state.user);
+  const canCreateDeal = user?.role !== 'sales_rep'; // Admin and sales_manager can create deals
+
   const [kanban, setKanban] = useState<KanbanResponse | null>(null);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<string>('');
@@ -392,10 +400,12 @@ export function DealsKanbanPage() {
                 </option>
               ))}
             </Select>
-            <Button onClick={() => handleAddDeal()}>
-              <Plus className="h-4 w-4" />
-              صفقة جديدة
-            </Button>
+            {canCreateDeal && (
+              <Button onClick={() => handleAddDeal()}>
+                <Plus className="h-4 w-4" />
+                صفقة جديدة
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -421,6 +431,7 @@ export function DealsKanbanPage() {
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onManageStages={handleManageStages}
+                  canCreateDeal={canCreateDeal}
                 />
               ))}
           </div>

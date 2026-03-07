@@ -13,6 +13,7 @@ import {
 import { Button, Card, DataTable, Badge, type Column } from '@/components/ui';
 import { companiesApi, type Company, type CompaniesParams } from '@/services/companies.api';
 import { CreateCompanyModal } from './CreateCompanyModal';
+import { useAuthStore } from '@/stores/authStore';
 
 const sizeLabels: Record<string, string> = {
   small: 'صغيرة',
@@ -23,6 +24,8 @@ const sizeLabels: Record<string, string> = {
 
 export function CompaniesPage() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const canCreateCompany = user?.role !== 'sales_rep'; // Admin and sales_manager can create companies
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -187,10 +190,12 @@ export function CompaniesPage() {
             إدارة الشركات والمؤسسات
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="h-4 w-4" />
-          إضافة شركة
-        </Button>
+        {canCreateCompany && (
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="h-4 w-4" />
+            إضافة شركة
+          </Button>
+        )}
       </div>
 
       {/* Table */}
