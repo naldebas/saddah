@@ -56,6 +56,17 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Admin-only route wrapper
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user);
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -127,9 +138,11 @@ function App() {
           </Suspense>
         } />
         <Route path="pipelines" element={
-          <Suspense fallback={<PageLoader />}>
-            <PipelinesPage />
-          </Suspense>
+          <AdminRoute>
+            <Suspense fallback={<PageLoader />}>
+              <PipelinesPage />
+            </Suspense>
+          </AdminRoute>
         } />
         <Route path="settings" element={
           <Suspense fallback={<PageLoader />}>
@@ -137,9 +150,11 @@ function App() {
           </Suspense>
         } />
         <Route path="admin/users" element={
-          <Suspense fallback={<PageLoader />}>
-            <UsersPage />
-          </Suspense>
+          <AdminRoute>
+            <Suspense fallback={<PageLoader />}>
+              <UsersPage />
+            </Suspense>
+          </AdminRoute>
         } />
       </Route>
 

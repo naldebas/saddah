@@ -35,12 +35,12 @@ const navItems = [
   { path: '/activities', icon: Calendar, labelKey: 'nav.activities' },
   { path: '/conversations', icon: MessageSquare, labelKey: 'nav.conversations' },
   { path: '/reports', icon: BarChart3, labelKey: 'nav.reports' },
-  { path: '/pipelines', icon: GitBranch, labelKey: 'nav.pipelines' },
   { path: '/settings', icon: Settings, labelKey: 'nav.settings' },
 ];
 
 const adminNavItems = [
   { path: '/admin/users', icon: UsersRound, labelKey: 'nav.admin.users' },
+  { path: '/pipelines', icon: GitBranch, labelKey: 'nav.pipelines' },
 ];
 
 export function Sidebar({ isOpen, isCollapsed, onClose, onToggleCollapse }: SidebarProps) {
