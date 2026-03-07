@@ -38,6 +38,7 @@ import { dealsApi, type Deal } from '@/services/deals.api';
 import { EditContactModal } from './EditContactModal';
 import { CreateActivityModal } from '../activities/CreateActivityModal';
 import { CreateDealModal } from '../deals/CreateDealModal';
+import { useAuthStore } from '@/stores/authStore';
 
 const activityTypeIcons: Record<string, typeof Phone> = {
   call: PhoneCall,
@@ -68,6 +69,8 @@ const statusLabels: Record<string, { label: string; variant: 'success' | 'warnin
 export function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const canDelete = user?.role !== 'sales_rep'; // Only admin and sales_manager can delete
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -185,10 +188,12 @@ export function ContactDetailPage() {
               <Edit className="h-4 w-4" />
               تعديل
             </Button>
-            <Button variant="danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
-              <Trash2 className="h-4 w-4" />
-              حذف
-            </Button>
+            {canDelete && (
+              <Button variant="danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
+                <Trash2 className="h-4 w-4" />
+                حذف
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui';
 import { dealsApi, type Deal } from '@/services/deals.api';
 import { EditDealModal } from './EditDealModal';
+import { useAuthStore } from '@/stores/authStore';
 
 interface DealDetailModalProps {
   isOpen: boolean;
@@ -44,6 +45,8 @@ export function DealDetailModal({
   onDealUpdated,
 }: DealDetailModalProps) {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const canDelete = user?.role !== 'sales_rep'; // Only admin and sales_manager can delete
 
   const [deal, setDeal] = useState<Deal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -313,14 +316,16 @@ export function DealDetailModal({
                     <Edit className="h-4 w-4" />
                     تعديل
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 text-error-500 border-error-200 hover:bg-error-50"
-                    onClick={() => setIsDeleteModalOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    حذف
-                  </Button>
+                  {canDelete && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-error-500 border-error-200 hover:bg-error-50"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      حذف
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

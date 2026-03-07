@@ -24,6 +24,7 @@ import {
 import { leadsApi, type Lead, type UpdateLeadDto, type ConvertLeadDto } from '@/services/leads.api';
 import { LeadRecommendations, type LeadRecommendation } from '@/components/leads/LeadRecommendations';
 import { pipelinesApi, type Pipeline } from '@/services/deals.api';
+import { useAuthStore } from '@/stores/authStore';
 
 interface LeadDetailModalProps {
   isOpen: boolean;
@@ -85,6 +86,9 @@ export function LeadDetailModal({
   leadId,
   onLeadUpdated,
 }: LeadDetailModalProps) {
+  const user = useAuthStore((state) => state.user);
+  const canDelete = user?.role !== 'sales_rep'; // Only admin and sales_manager can delete
+
   const [lead, setLead] = useState<(Lead & { recommendations?: LeadRecommendation[] }) | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -565,14 +569,16 @@ export function LeadDetailModal({
                       <Edit className="h-4 w-4" />
                       تعديل
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 text-error-500 border-error-200 hover:bg-error-50"
-                      onClick={() => setIsDeleteModalOpen(true)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      حذف
-                    </Button>
+                    {canDelete && (
+                      <Button
+                        variant="outline"
+                        className="flex-1 text-error-500 border-error-200 hover:bg-error-50"
+                        onClick={() => setIsDeleteModalOpen(true)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        حذف
+                      </Button>
+                    )}
                   </div>
                 </>
               )}

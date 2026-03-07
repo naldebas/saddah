@@ -22,6 +22,7 @@ import {
   ConfirmModal,
 } from '@/components/ui';
 import { activitiesApi, type Activity } from '@/services/activities.api';
+import { useAuthStore } from '@/stores/authStore';
 
 interface ActivityDetailModalProps {
   isOpen: boolean;
@@ -67,6 +68,8 @@ export function ActivityDetailModal({
   onActivityUpdated,
 }: ActivityDetailModalProps) {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const canDelete = user?.role !== 'sales_rep'; // Only admin and sales_manager can delete
 
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -294,16 +297,18 @@ export function ActivityDetailModal({
                   </Button>
                 )}
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 text-error-500 border-error-200 hover:bg-error-50"
-                    onClick={() => setIsDeleteModalOpen(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    حذف
-                  </Button>
-                </div>
+                {canDelete && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 text-error-500 border-error-200 hover:bg-error-50"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      حذف
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
