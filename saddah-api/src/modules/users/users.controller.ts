@@ -64,6 +64,26 @@ export class UsersController {
     return this.usersService.changePassword(userId, dto);
   }
 
+  @Get('team/dashboard')
+  @ApiOperation({ summary: 'لوحة تحكم الفريق (لمدير المبيعات)' })
+  @ApiResponse({ status: 200, description: 'إحصائيات الفريق' })
+  @ApiResponse({ status: 403, description: 'غير مصرح' })
+  getTeamDashboard(@CurrentUser() user: AuthenticatedUser) {
+    // Only sales managers and admins can view team dashboard
+    if (!['admin', 'manager', 'sales_manager'].includes(user.role)) {
+      throw new ForbiddenException('غير مصرح لك بعرض لوحة تحكم الفريق');
+    }
+    return this.usersService.getTeamDashboard(user.tenantId, user.id);
+  }
+
+  @Get('managers/list')
+  @RequirePermission('users.view')
+  @ApiOperation({ summary: 'قائمة المدراء (لتعيين الفريق)' })
+  @ApiResponse({ status: 200, description: 'قائمة المدراء' })
+  getManagers(@CurrentUser('tenantId') tenantId: string) {
+    return this.usersService.getManagers(tenantId);
+  }
+
   @Get(':id')
   @RequirePermission('users.view')
   @ApiOperation({ summary: 'الحصول على مستخدم محدد' })
@@ -111,25 +131,5 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.usersService.remove(tenantId, id);
-  }
-
-  @Get('team/dashboard')
-  @ApiOperation({ summary: 'لوحة تحكم الفريق (لمدير المبيعات)' })
-  @ApiResponse({ status: 200, description: 'إحصائيات الفريق' })
-  @ApiResponse({ status: 403, description: 'غير مصرح' })
-  getTeamDashboard(@CurrentUser() user: AuthenticatedUser) {
-    // Only sales managers and admins can view team dashboard
-    if (!['admin', 'manager', 'sales_manager'].includes(user.role)) {
-      throw new ForbiddenException('غير مصرح لك بعرض لوحة تحكم الفريق');
-    }
-    return this.usersService.getTeamDashboard(user.tenantId, user.id);
-  }
-
-  @Get('managers/list')
-  @RequirePermission('users.view')
-  @ApiOperation({ summary: 'قائمة المدراء (لتعيين الفريق)' })
-  @ApiResponse({ status: 200, description: 'قائمة المدراء' })
-  getManagers(@CurrentUser('tenantId') tenantId: string) {
-    return this.usersService.getManagers(tenantId);
   }
 }
