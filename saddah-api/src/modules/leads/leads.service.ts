@@ -7,6 +7,7 @@ import { QueryLeadsDto } from './dto/query-leads.dto';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { ScoreLeadDto } from './dto/score-lead.dto';
 import { LeadRecommendationsService } from './lead-recommendations.service';
+import { LeadAssignmentService } from './lead-assignment.service';
 
 // Roles that can see all leads
 const FULL_ACCESS_ROLES = ['admin', 'manager', 'sales_manager'];
@@ -16,6 +17,7 @@ export class LeadsService {
   constructor(
     private prisma: PrismaService,
     private recommendationsService: LeadRecommendationsService,
+    private assignmentService: LeadAssignmentService,
   ) {}
 
   /**
@@ -133,10 +135,19 @@ export class LeadsService {
     // Calculate automatic score
     const { score, grade, factors } = this.calculateLeadScore(dto);
 
+    // Determine owner: explicit > auto-assign (round-robin) > current user
+    let ownerId = dto.ownerId;
+
+    if (!ownerId) {
+      // Auto-assign using round-robin
+      const assignedUserId = await this.assignmentService.getNextAssignee(tenantId);
+      ownerId = assignedUserId || userId; // Fallback to current user if no assignees available
+    }
+
     const lead = await this.prisma.lead.create({
       data: {
         tenantId,
-        ownerId: dto.ownerId || userId,
+        ownerId,
         firstName: dto.firstName,
         lastName: dto.lastName,
         email: dto.email,

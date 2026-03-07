@@ -18,11 +18,13 @@ import {
 } from '@nestjs/swagger';
 
 import { LeadsService } from './leads.service';
+import { LeadAssignmentService } from './lead-assignment.service';
 import { CreateLeadDto, LeadStatus } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { QueryLeadsDto } from './dto/query-leads.dto';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { ScoreLeadDto } from './dto/score-lead.dto';
+import { ReassignLeadDto, BulkReassignLeadsDto } from './dto/reassign-lead.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 import { RequirePermission } from '@/modules/auth/decorators/permission.decorator';
@@ -33,7 +35,10 @@ import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
 @Controller('leads')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class LeadsController {
-  constructor(private readonly leadsService: LeadsService) {}
+  constructor(
+    private readonly leadsService: LeadsService,
+    private readonly assignmentService: LeadAssignmentService,
+  ) {}
 
   @Post()
   @RequirePermission('leads.create')
@@ -70,6 +75,54 @@ export class LeadsController {
     @CurrentUser('role') userRole: string,
   ) {
     return this.leadsService.getStatistics(tenantId, userId, userRole);
+  }
+
+  // ============================================
+  // ASSIGNMENT ENDPOINTS
+  // ============================================
+
+  @Get('assignment/assignees')
+  @RequirePermission('leads.view')
+  @ApiOperation({ summary: 'قائمة المستخدمين المتاحين للتعيين' })
+  @ApiResponse({ status: 200, description: 'قائمة موظفي المبيعات' })
+  getAvailableAssignees(@CurrentUser('tenantId') tenantId: string) {
+    return this.assignmentService.getAvailableAssignees(tenantId);
+  }
+
+  @Get('assignment/unassigned')
+  @RequirePermission('leads.view')
+  @ApiOperation({ summary: 'العملاء المحتملين غير المعينين' })
+  @ApiResponse({ status: 200, description: 'قائمة العملاء المحتملين بدون مسؤول' })
+  getUnassignedLeads(@CurrentUser('tenantId') tenantId: string) {
+    return this.assignmentService.getUnassignedLeads(tenantId);
+  }
+
+  @Get('assignment/stats')
+  @RequirePermission('leads.view')
+  @ApiOperation({ summary: 'إحصائيات التعيين' })
+  @ApiResponse({ status: 200, description: 'إحصائيات توزيع العملاء المحتملين' })
+  getAssignmentStats(@CurrentUser('tenantId') tenantId: string) {
+    return this.assignmentService.getAssignmentStats(tenantId);
+  }
+
+  @Patch('assignment/bulk-reassign')
+  @RequirePermission('leads.edit')
+  @ApiOperation({ summary: 'إعادة تعيين عدة عملاء محتملين (للمدراء فقط)' })
+  @ApiResponse({ status: 200, description: 'تم إعادة التعيين بنجاح' })
+  @ApiResponse({ status: 403, description: 'غير مصرح' })
+  bulkReassign(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+    @Body() dto: BulkReassignLeadsDto,
+  ) {
+    return this.assignmentService.bulkReassign(
+      tenantId,
+      dto.leadIds,
+      dto.newOwnerId,
+      userId,
+      userRole,
+    );
   }
 
   @Get(':id')
@@ -113,6 +166,27 @@ export class LeadsController {
     @Param('status') status: LeadStatus,
   ) {
     return this.leadsService.updateStatus(tenantId, id, status, userId, userRole);
+  }
+
+  @Patch(':id/reassign')
+  @RequirePermission('leads.edit')
+  @ApiOperation({ summary: 'إعادة تعيين عميل محتمل (للمدراء فقط)' })
+  @ApiResponse({ status: 200, description: 'تم إعادة التعيين بنجاح' })
+  @ApiResponse({ status: 403, description: 'غير مصرح' })
+  reassign(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReassignLeadDto,
+  ) {
+    return this.assignmentService.reassignLead(
+      tenantId,
+      id,
+      dto.newOwnerId,
+      userId,
+      userRole,
+    );
   }
 
   @Patch(':id/score')
