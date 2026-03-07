@@ -46,10 +46,9 @@ export class PipelinesController {
   }
 
   @Get()
-  @RequirePermission('pipelines.view')
-  @ApiOperation({ summary: 'الحصول على قائمة خطوط المبيعات (للمسؤول فقط)' })
+  @RequirePermission('deals.view')
+  @ApiOperation({ summary: 'الحصول على قائمة خطوط المبيعات' })
   @ApiResponse({ status: 200, description: 'قائمة خطوط المبيعات' })
-  @ApiResponse({ status: 403, description: 'غير مصرح - للمسؤول فقط' })
   findAll(@CurrentUser('tenantId') tenantId: string) {
     return this.pipelinesService.findAll(tenantId);
   }
@@ -63,11 +62,10 @@ export class PipelinesController {
   }
 
   @Get(':id')
-  @RequirePermission('pipelines.view')
-  @ApiOperation({ summary: 'الحصول على خط مبيعات محدد (للمسؤول فقط)' })
+  @RequirePermission('deals.view')
+  @ApiOperation({ summary: 'الحصول على خط مبيعات محدد' })
   @ApiResponse({ status: 200, description: 'بيانات خط المبيعات' })
   @ApiResponse({ status: 404, description: 'خط المبيعات غير موجود' })
-  @ApiResponse({ status: 403, description: 'غير مصرح - للمسؤول فقط' })
   findOne(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id', ParseUUIDPipe) id: string,
