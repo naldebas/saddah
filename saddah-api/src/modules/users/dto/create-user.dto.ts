@@ -1,5 +1,5 @@
 // src/modules/users/dto/create-user.dto.ts
-import { IsEmail, IsString, IsOptional, MinLength, IsEnum, Matches } from 'class-validator';
+import { IsEmail, IsString, IsOptional, MinLength, IsEnum, Matches, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 // Password must contain at least one uppercase, one lowercase, one number, and one special character
@@ -46,4 +46,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @ApiProperty({ example: 'uuid-of-manager', required: false, description: 'ID of the manager (for team assignment)' })
+  @IsOptional()
+  @IsUUID()
+  managerId?: string;
 }

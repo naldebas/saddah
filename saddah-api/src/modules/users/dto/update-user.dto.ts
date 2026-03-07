@@ -1,5 +1,5 @@
 // src/modules/users/dto/update-user.dto.ts
-import { IsString, IsOptional, IsEnum, IsBoolean, MinLength, Matches } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsBoolean, MinLength, Matches, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from './create-user.dto';
 
@@ -36,6 +36,11 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({ example: 'uuid-of-manager', required: false, description: 'ID of the manager (for team assignment)' })
+  @IsOptional()
+  @IsUUID()
+  managerId?: string;
 }
 
 export class UpdateProfileDto {

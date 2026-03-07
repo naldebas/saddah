@@ -224,6 +224,7 @@ export class AuthService {
         'conversations.*',
         'reports.*',
         'settings.*',
+        'pipelines.*',
       ],
       sales_manager: [
         'users.view',

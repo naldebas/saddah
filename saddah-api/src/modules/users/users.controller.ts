@@ -9,6 +9,7 @@ import {
   Param,
   UseGuards,
   ParseUUIDPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
 import { RequirePermission } from '@/modules/auth/decorators/permission.decorator';
+import { AuthenticatedUser } from '@/modules/auth/interfaces/jwt-payload.interface';
 
 @ApiTags('Users')
 @ApiBearerAuth('access-token')
@@ -109,5 +111,25 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.usersService.remove(tenantId, id);
+  }
+
+  @Get('team/dashboard')
+  @ApiOperation({ summary: 'لوحة تحكم الفريق (لمدير المبيعات)' })
+  @ApiResponse({ status: 200, description: 'إحصائيات الفريق' })
+  @ApiResponse({ status: 403, description: 'غير مصرح' })
+  getTeamDashboard(@CurrentUser() user: AuthenticatedUser) {
+    // Only sales managers and admins can view team dashboard
+    if (!['admin', 'manager', 'sales_manager'].includes(user.role)) {
+      throw new ForbiddenException('غير مصرح لك بعرض لوحة تحكم الفريق');
+    }
+    return this.usersService.getTeamDashboard(user.tenantId, user.id);
+  }
+
+  @Get('managers/list')
+  @RequirePermission('users.view')
+  @ApiOperation({ summary: 'قائمة المدراء (لتعيين الفريق)' })
+  @ApiResponse({ status: 200, description: 'قائمة المدراء' })
+  getManagers(@CurrentUser('tenantId') tenantId: string) {
+    return this.usersService.getManagers(tenantId);
   }
 }

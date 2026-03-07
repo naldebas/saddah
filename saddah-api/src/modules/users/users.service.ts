@@ -21,12 +21,21 @@ export class UsersService {
         phone: true,
         avatar: true,
         language: true,
+        managerId: true,
         createdAt: true,
         lastLoginAt: true,
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
         _count: {
           select: {
             ownedDeals: true,
             activities: true,
+            teamMembers: true,
           },
         },
       },
@@ -46,13 +55,31 @@ export class UsersService {
         phone: true,
         avatar: true,
         language: true,
+        managerId: true,
         createdAt: true,
         lastLoginAt: true,
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        teamMembers: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
         _count: {
           select: {
             ownedDeals: true,
             activities: true,
             ownedContacts: true,
+            teamMembers: true,
           },
         },
       },
@@ -93,6 +120,7 @@ export class UsersService {
         passwordHash: hashedPassword,
         tenantId,
         language: dto.language || 'ar',
+        managerId: dto.managerId,
       },
       select: {
         id: true,
@@ -102,6 +130,7 @@ export class UsersService {
         role: true,
         phone: true,
         language: true,
+        managerId: true,
         createdAt: true,
       },
     });
@@ -128,7 +157,15 @@ export class UsersService {
         phone: true,
         language: true,
         isActive: true,
+        managerId: true,
         updatedAt: true,
+        manager: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
     });
   }
@@ -241,6 +278,161 @@ export class UsersService {
         id: true,
         avatar: true,
       },
+    });
+  }
+
+  /**
+   * Get team dashboard for a sales manager
+   * Shows team members with their statistics
+   */
+  async getTeamDashboard(tenantId: string, managerId: string) {
+    // Get team members
+    const teamMembers = await this.prisma.user.findMany({
+      where: {
+        tenantId,
+        managerId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        phone: true,
+        avatar: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+    });
+
+    // Get statistics for each team member
+    const teamStats = await Promise.all(
+      teamMembers.map(async (member) => {
+        const [dealsStats, leadsStats, activitiesStats, contactsStats] = await Promise.all([
+          // Deals statistics
+          this.prisma.deal.groupBy({
+            by: ['status'],
+            where: { ownerId: member.id, tenantId },
+            _count: { id: true },
+            _sum: { value: true },
+          }),
+          // Leads statistics
+          this.prisma.lead.groupBy({
+            by: ['status'],
+            where: { ownerId: member.id, tenantId },
+            _count: { id: true },
+          }),
+          // Activities statistics (this month)
+          this.prisma.activity.aggregate({
+            where: {
+              createdById: member.id,
+              tenantId,
+              createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+              },
+            },
+            _count: { id: true },
+          }),
+          // Contacts count
+          this.prisma.contact.count({
+            where: { ownerId: member.id, tenantId },
+          }),
+        ]);
+
+        // Process deals stats
+        const totalDeals = dealsStats.reduce((sum, d) => sum + d._count.id, 0);
+        const wonDeals = dealsStats.find((d) => d.status === 'won');
+        const openDeals = dealsStats.find((d) => d.status === 'open');
+
+        // Process leads stats
+        const totalLeads = leadsStats.reduce((sum, l) => sum + l._count.id, 0);
+        const convertedLeads = leadsStats.find((l) => l.status === 'converted');
+
+        return {
+          ...member,
+          stats: {
+            deals: {
+              total: totalDeals,
+              won: wonDeals?._count.id || 0,
+              wonValue: Number(wonDeals?._sum.value || 0),
+              open: openDeals?._count.id || 0,
+              openValue: Number(openDeals?._sum.value || 0),
+            },
+            leads: {
+              total: totalLeads,
+              converted: convertedLeads?._count.id || 0,
+              conversionRate: totalLeads > 0
+                ? Math.round(((convertedLeads?._count.id || 0) / totalLeads) * 100)
+                : 0,
+            },
+            activities: {
+              thisMonth: activitiesStats._count.id || 0,
+            },
+            contacts: {
+              total: contactsStats,
+            },
+          },
+        };
+      }),
+    );
+
+    // Calculate team totals
+    const totalLeadsCount = teamStats.reduce((sum, m) => sum + m.stats.leads.total, 0);
+    const convertedLeadsCount = teamStats.reduce((sum, m) => sum + m.stats.leads.converted, 0);
+
+    const teamTotals = {
+      members: teamMembers.length,
+      deals: {
+        total: teamStats.reduce((sum, m) => sum + m.stats.deals.total, 0),
+        won: teamStats.reduce((sum, m) => sum + m.stats.deals.won, 0),
+        wonValue: teamStats.reduce((sum, m) => sum + m.stats.deals.wonValue, 0),
+        open: teamStats.reduce((sum, m) => sum + m.stats.deals.open, 0),
+        openValue: teamStats.reduce((sum, m) => sum + m.stats.deals.openValue, 0),
+      },
+      leads: {
+        total: totalLeadsCount,
+        converted: convertedLeadsCount,
+        conversionRate: totalLeadsCount > 0
+          ? Math.round((convertedLeadsCount / totalLeadsCount) * 100)
+          : 0,
+      },
+      activities: {
+        thisMonth: teamStats.reduce((sum, m) => sum + m.stats.activities.thisMonth, 0),
+      },
+      contacts: {
+        total: teamStats.reduce((sum, m) => sum + m.stats.contacts.total, 0),
+      },
+    };
+
+    return {
+      teamMembers: teamStats,
+      totals: teamTotals,
+    };
+  }
+
+  /**
+   * Get list of managers for team assignment dropdown
+   */
+  async getManagers(tenantId: string) {
+    return this.prisma.user.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        role: { in: ['admin', 'manager', 'sales_manager'] },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        _count: {
+          select: {
+            teamMembers: true,
+          },
+        },
+      },
+      orderBy: { firstName: 'asc' },
     });
   }
 }
