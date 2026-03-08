@@ -23,7 +23,6 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import {
   botpressApi,
-  type BotpressConfig,
   type CreateBotpressConfigDto,
 } from '@/services/botpress.api';
 
