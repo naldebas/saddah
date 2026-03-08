@@ -38,8 +38,13 @@ COPY prisma ./prisma/
 # Install production dependencies only
 RUN npm ci --omit=dev --legacy-peer-deps
 
-# Generate Prisma client for production (dummy URL for validation only)
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+# Copy generated Prisma client from builder (avoids npx downloading Prisma 7.x)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# Copy Prisma CLI + engines from builder for migrations at runtime
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
 # Copy compiled application from builder
 COPY --from=builder /app/dist ./dist
@@ -58,4 +63,5 @@ EXPOSE ${PORT:-3000}
 
 # Run migrations then start server
 # Railway sets DATABASE_URL automatically from the Postgres add-on
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+# Use local prisma binary (not npx) to avoid downloading Prisma 7.x at runtime
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/main"]
