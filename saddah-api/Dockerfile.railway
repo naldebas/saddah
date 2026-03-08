@@ -46,6 +46,9 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
+# Create bin symlink for prisma CLI (since npm ci --omit=dev doesn't create it)
+RUN mkdir -p node_modules/.bin && ln -s ../prisma/build/index.js node_modules/.bin/prisma
+
 # Copy compiled application from builder
 COPY --from=builder /app/dist ./dist
 
