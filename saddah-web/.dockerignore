@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.github
+.vscode
+.env
+.env.*
+!.env.example
+*.md
+coverage
+test-results
+playwright-report
+.eslintrc*
+.prettierrc*
