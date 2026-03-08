@@ -38,13 +38,11 @@ COPY prisma ./prisma/
 # Install production dependencies only
 RUN npm ci --omit=dev --legacy-peer-deps
 
-# Copy generated Prisma client from builder (avoids npx downloading Prisma 7.x)
+# Copy ALL Prisma packages from builder (avoids npx downloading Prisma 7.x)
+# Includes: .prisma (generated), @prisma/* (client, debug, engines, etc.), prisma CLI
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
-
-# Copy Prisma CLI + engines from builder for migrations at runtime
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
 # Create bin symlink for prisma CLI (since npm ci --omit=dev doesn't create it)
 RUN mkdir -p node_modules/.bin && ln -s ../prisma/build/index.js node_modules/.bin/prisma
