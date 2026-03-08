@@ -10,6 +10,7 @@ import { useLeads, useLeadStatistics } from '@/hooks';
 import type { Lead } from '@/services/leads.api';
 import { CreateLeadModal } from './CreateLeadModal';
 import { LeadDetailModal } from './LeadDetailModal';
+import { useAuthStore } from '@/stores/authStore';
 
 const statusColors: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'error'> = {
   new: 'primary',
@@ -22,6 +23,8 @@ const statusColors: Record<string, 'default' | 'primary' | 'success' | 'warning'
 
 export function LeadsPage() {
   const { t } = useTranslation();
+  const user = useAuthStore((state) => state.user);
+  const canCreateLead = user?.role !== 'sales_rep'; // Only admin and sales_manager can create leads
 
   // Filter state
   const [currentPage, setCurrentPage] = useState(1);
@@ -205,10 +208,12 @@ export function LeadsPage() {
           <h1 className="text-2xl font-bold text-gray-900">{t('leads.title')}</h1>
           <p className="text-gray-600 mt-1">{t('leads.subtitle')}</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="w-4 h-4 ml-2" />
-          {t('leads.addNew')}
-        </Button>
+        {canCreateLead && (
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="w-4 h-4 ml-2" />
+            {t('leads.addNew')}
+          </Button>
+        )}
       </div>
 
       {/* Statistics Cards */}
