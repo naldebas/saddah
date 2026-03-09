@@ -86,50 +86,65 @@ export class BotpressWebhookController {
   }
 
   /**
-   * Verify webhook signature
+   * Verify webhook signature or validate by botId matching
    */
   private async verifySignature(
     tenantId: string,
     signature: string,
     body: any,
   ): Promise<boolean> {
-    // If no signature provided, allow in development
-    if (!signature) {
-      const isDev = process.env.NODE_ENV !== 'production';
-      if (isDev) {
-        this.logger.warn('No signature provided, allowing in development mode');
-        return true;
-      }
-      return false;
-    }
-
-    // Get config to retrieve webhook secret
+    // Get config to retrieve webhook secret and botId
     const configData = await this.configService.getConfigWithCredentials(tenantId);
     if (!configData) {
       return false;
     }
 
-    const { credentials } = configData;
-    if (!credentials.webhookSecret) {
+    // If signature is provided, verify HMAC
+    if (signature) {
+      const { credentials } = configData;
+      if (!credentials.webhookSecret) {
+        return false;
+      }
+
+      // Compute expected signature
+      const payload = JSON.stringify(body);
+      const expectedSignature = crypto
+        .createHmac('sha256', credentials.webhookSecret)
+        .update(payload)
+        .digest('hex');
+
+      // Compare signatures (timing-safe comparison)
+      try {
+        return crypto.timingSafeEqual(
+          Buffer.from(signature),
+          Buffer.from(expectedSignature),
+        );
+      } catch {
+        return false;
+      }
+    }
+
+    // No signature: allow if the botId in payload matches the configured botId
+    // This supports Botpress Execute Code cards which can't compute HMAC signatures
+    if (body.botId && configData.config.botId) {
+      if (body.botId === configData.config.botId) {
+        this.logger.warn(
+          `No signature provided, allowing webhook based on botId match for tenant ${tenantId}`,
+        );
+        return true;
+      }
+      this.logger.warn(`botId mismatch: payload=${body.botId}, config=${configData.config.botId}`);
       return false;
     }
 
-    // Compute expected signature
-    const payload = JSON.stringify(body);
-    const expectedSignature = crypto
-      .createHmac('sha256', credentials.webhookSecret)
-      .update(payload)
-      .digest('hex');
-
-    // Compare signatures (timing-safe comparison)
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature),
-      );
-    } catch {
-      return false;
+    // In non-production environments, allow unsigned requests with a warning
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (isDev) {
+      this.logger.warn('No signature provided, allowing in development mode');
+      return true;
     }
+
+    return false;
   }
 
   /**
