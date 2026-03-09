@@ -35,24 +35,33 @@ export class BotpressClientService {
     credentials: BotpressCredentials,
   ): Promise<BotpressTestConnectionResult> {
     try {
-      // Test by fetching bot info
+      // Test by fetching bot info (Botpress Cloud API uses /admin/ prefix for management endpoints)
       const response = await this.makeRequest(
         'GET',
-        `/bots/${botId}`,
+        `/admin/bots/${botId}`,
         credentials.token,
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to connect to Botpress');
+        const errorText = await response.text();
+        let errorMessage = 'Failed to connect to Botpress';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      const botData = await response.json();
+      const botResponse = await response.json();
+      // Admin API wraps bot data in a 'bot' property
+      const botData = botResponse.bot || botResponse;
 
-      // Also verify workspace
+      // Also verify workspace (uses /admin/ prefix)
       const wsResponse = await this.makeRequest(
         'GET',
-        `/workspaces/${workspaceId}`,
+        `/admin/workspaces/${workspaceId}`,
         credentials.token,
       );
 
