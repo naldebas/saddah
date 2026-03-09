@@ -38,19 +38,19 @@ RUN rm /etc/nginx/conf.d/default.conf
 # Copy custom nginx config template
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
+# Copy custom entrypoint that reads DNS resolver from /etc/resolv.conf
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Copy built application
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Railway sets PORT env var; nginx template substitution uses it
+# Railway sets PORT env var; nginx template uses it
 # API_URL will be set as a Railway variable pointing to the backend service
 ENV PORT=8080
 ENV API_URL=http://localhost:3000
 
-# CRITICAL: Only substitute our custom env vars, not nginx's ($host, $uri, etc.)
-ENV NGINX_ENVSUBST_FILTER=PORT|API_URL
-
 EXPOSE ${PORT}
 
-# nginx docker image auto-runs envsubst on /etc/nginx/templates/*.template
-# and outputs to /etc/nginx/conf.d/, then starts nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Custom entrypoint handles DNS resolver detection + envsubst + nginx start
+CMD ["/docker-entrypoint.sh"]
