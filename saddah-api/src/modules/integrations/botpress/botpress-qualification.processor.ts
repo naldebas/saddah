@@ -476,7 +476,7 @@ export class BotpressQualificationProcessor {
         ownerId: lead.ownerId || owner.id,
         pipelineId: pipeline.id,
         stageId: firstStage.id,
-        title: `صفقة - ${data.name || lead.firstName}`,
+        title: `صفقة - ${lead.firstName}${lead.lastName ? ' ' + lead.lastName : ''}`,
         value: dealValue,
         currency: data.budget?.currency || 'SAR',
         status: 'open',
