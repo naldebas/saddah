@@ -51,35 +51,71 @@ export class BotpressQualificationProcessor {
         botpressConversationId,
       );
 
-      if (!convMapping) {
-        return { success: false, error: 'Conversation mapping not found' };
+      let conversation;
+
+      if (convMapping) {
+        // Get the existing Saddah conversation
+        conversation = await this.prisma.conversation.findUnique({
+          where: { id: convMapping.conversationId },
+        });
+
+        if (conversation) {
+          // Update the mapping with qualification data
+          await this.syncService.updateQualificationData(
+            convMapping.id,
+            data as unknown as Record<string, any>,
+            data.seriousnessScore,
+            'qualified',
+          );
+
+          // Update conversation qualification data
+          await this.prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              qualificationData: data as unknown as any,
+              status: 'qualified',
+            },
+          });
+        }
       }
 
-      // Get the Saddah conversation
-      const conversation = await this.prisma.conversation.findUnique({
-        where: { id: convMapping.conversationId },
-      });
-
+      // If no conversation exists, create one for the bot-originated lead
       if (!conversation) {
-        return { success: false, error: 'Saddah conversation not found' };
+        this.logger.log(
+          `No existing conversation mapping for botpress conv ${botpressConversationId}, creating new conversation`,
+        );
+
+        // Get first admin as fallback assignee
+        const admin = await this.prisma.user.findFirst({
+          where: { tenantId, role: 'admin' },
+        });
+
+        conversation = await this.prisma.conversation.create({
+          data: {
+            tenantId,
+            channel: 'whatsapp',
+            channelId: data.phone || botpressConversationId,
+            status: 'qualified',
+            assignedToId: admin?.id,
+            qualificationData: {
+              ...(data as unknown as Record<string, any>),
+              botpressConversationId,
+              source: 'botpress_bot',
+            },
+          },
+        });
+
+        // Create sync mapping for future reference
+        await this.prisma.botpressConversation.create({
+          data: {
+            tenantId,
+            conversationId: conversation.id,
+            botpressConvId: botpressConversationId,
+            botpressState: 'qualified',
+            lastSyncedAt: new Date(),
+          },
+        });
       }
-
-      // Update the mapping with qualification data
-      await this.syncService.updateQualificationData(
-        convMapping.id,
-        data as unknown as Record<string, any>,
-        data.seriousnessScore,
-        'qualified',
-      );
-
-      // Update conversation qualification data
-      await this.prisma.conversation.update({
-        where: { id: conversation.id },
-        data: {
-          qualificationData: data as unknown as any,
-          status: 'qualified',
-        },
-      });
 
       let lead = null;
       let deal = null;
