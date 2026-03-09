@@ -252,7 +252,17 @@ export class BotpressQualificationProcessor {
     data: QualificationData,
   ) {
     // Parse name into first/last name
-    const nameParts = (data.name || 'عميل واتساب').split(' ');
+    // Handle name as string OR object { first, last }
+    let nameStr = 'عميل واتساب';
+    if (data.name) {
+      if (typeof data.name === 'string') {
+        nameStr = data.name;
+      } else if (typeof data.name === 'object') {
+        const nameObj = data.name as any;
+        nameStr = [nameObj.first, nameObj.last].filter(Boolean).join(' ');
+      }
+    }
+    const nameParts = nameStr.split(' ');
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
