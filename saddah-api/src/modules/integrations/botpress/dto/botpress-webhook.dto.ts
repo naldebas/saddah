@@ -40,11 +40,10 @@ export class BotpressWebhookPayloadDto {
   @IsOptional()
   metadata?: Record<string, any>;
 
-  // Qualification fields
+  // Qualification fields - name can be a string or object { first, last } from Botpress
   @ApiPropertyOptional()
-  @IsString()
   @IsOptional()
-  name?: string;
+  name?: string | Record<string, any>;
 
   @ApiPropertyOptional()
   @IsString()

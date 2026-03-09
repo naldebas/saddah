@@ -48,7 +48,7 @@ export interface BotpressQualificationEvent extends BotpressWebhookEvent {
 }
 
 export interface QualificationData {
-  name?: string;
+  name?: string | { first?: string; last?: string };
   phone: string;
   email?: string;
   propertyType?: string;
