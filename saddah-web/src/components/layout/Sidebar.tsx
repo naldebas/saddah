@@ -15,6 +15,8 @@ import {
   GitBranch,
   Shield,
   UsersRound,
+  Home,
+  FolderKanban,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useAuthStore } from '@/stores/authStore';
@@ -32,6 +34,8 @@ const navItems = [
   { path: '/companies', icon: Building2, labelKey: 'nav.companies' },
   { path: '/deals', icon: Briefcase, labelKey: 'nav.deals' },
   { path: '/leads', icon: UserPlus, labelKey: 'nav.leads' },
+  { path: '/projects', icon: FolderKanban, labelKey: 'nav.projects' },
+  { path: '/products', icon: Home, labelKey: 'nav.products' },
   { path: '/activities', icon: Calendar, labelKey: 'nav.activities' },
   { path: '/conversations', icon: MessageSquare, labelKey: 'nav.conversations' },
   { path: '/reports', icon: BarChart3, labelKey: 'nav.reports' },

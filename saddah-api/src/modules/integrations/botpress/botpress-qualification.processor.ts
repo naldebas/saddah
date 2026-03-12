@@ -6,13 +6,17 @@ import { BotpressConfigService } from './botpress-config.service';
 import { BotpressSyncService } from './botpress-sync.service';
 import { QualificationData, BotpressInternalEvents } from './interfaces';
 import { LeadAssignmentService } from '@/modules/leads/lead-assignment.service';
+import { ProductSuggestionService } from '@/modules/products/product-suggestion.service';
 
 export interface QualificationProcessResult {
   success: boolean;
   leadId?: string;
   dealId?: string;
+  contactId?: string;
   isNewLead?: boolean;
   isNewDeal?: boolean;
+  isNewContact?: boolean;
+  suggestionsCount?: number;
   assignedTo?: string;
   error?: string;
 }
@@ -28,6 +32,8 @@ export class BotpressQualificationProcessor {
     private readonly eventEmitter: EventEmitter2,
     @Inject(forwardRef(() => LeadAssignmentService))
     private readonly leadAssignmentService: LeadAssignmentService,
+    @Inject(forwardRef(() => ProductSuggestionService))
+    private readonly productSuggestionService: ProductSuggestionService,
   ) {}
 
   /**
@@ -119,8 +125,11 @@ export class BotpressQualificationProcessor {
 
       let lead = null;
       let deal = null;
+      let contact = null;
       let isNewLead = false;
       let isNewDeal = false;
+      let isNewContact = false;
+      let suggestionsCount = 0;
 
       // Check if lead already exists by phone
       if (data.phone) {
@@ -136,6 +145,22 @@ export class BotpressQualificationProcessor {
       if (!lead && config.autoCreateLead) {
         lead = await this.createLead(tenantId, conversation.id, data);
         isNewLead = true;
+
+        // Auto-create Contact from lead data
+        contact = await this.createContact(tenantId, lead, data);
+        isNewContact = true;
+
+        // Link lead to contact
+        await this.prisma.lead.update({
+          where: { id: lead.id },
+          data: { contactId: contact.id },
+        });
+
+        // Link conversation to contact
+        await this.prisma.conversation.update({
+          where: { id: conversation.id },
+          data: { contactId: contact.id },
+        });
 
         // Auto-assign conversation to lead owner
         if (lead.ownerId) {
@@ -154,16 +179,24 @@ export class BotpressQualificationProcessor {
           await this.logLeadCreationActivity(tenantId, lead, conversation.id, data);
         }
 
+        // Generate product suggestions based on lead criteria
+        suggestionsCount = await this.generateProductSuggestions(tenantId, lead.id, data);
+
         this.eventEmitter.emit(BotpressInternalEvents.LEAD_CREATED, {
           tenantId,
           leadId: lead.id,
+          contactId: contact.id,
           conversationId: conversation.id,
           assignedTo: lead.ownerId,
           qualificationData: data,
+          suggestionsCount,
         });
       } else if (lead) {
         // Update existing lead with new data
         lead = await this.updateLead(lead.id, data);
+
+        // Regenerate product suggestions for updated lead
+        suggestionsCount = await this.generateProductSuggestions(tenantId, lead.id, data);
       }
 
       // Auto-convert to deal if enabled and score meets threshold
@@ -222,7 +255,9 @@ export class BotpressQualificationProcessor {
       this.logger.log(
         `Processed qualification for conversation ${conversation.id}: ` +
           `lead=${lead?.id || 'none'} (new=${isNewLead}), ` +
+          `contact=${contact?.id || 'none'} (new=${isNewContact}), ` +
           `deal=${deal?.id || 'none'} (new=${isNewDeal}), ` +
+          `suggestions=${suggestionsCount}, ` +
           `score=${data.seriousnessScore}`,
       );
 
@@ -230,8 +265,11 @@ export class BotpressQualificationProcessor {
         success: true,
         leadId: lead?.id,
         dealId: deal?.id,
+        contactId: contact?.id,
         isNewLead,
         isNewDeal,
+        isNewContact,
+        suggestionsCount,
         assignedTo: lead?.ownerId || undefined,
       };
     } catch (error: any) {
@@ -320,6 +358,89 @@ export class BotpressQualificationProcessor {
     if (score >= 60) return 'B';
     if (score >= 40) return 'C';
     return 'D';
+  }
+
+  /**
+   * Create a Contact from lead data
+   */
+  private async createContact(
+    tenantId: string,
+    lead: any,
+    data: QualificationData,
+  ) {
+    const contact = await this.prisma.contact.create({
+      data: {
+        tenantId,
+        ownerId: lead.ownerId,
+        leadId: lead.id,
+        firstName: lead.firstName,
+        lastName: lead.lastName || '',
+        phone: lead.phone,
+        whatsapp: lead.whatsapp || lead.phone,
+        email: lead.email,
+        source: 'whatsapp_bot',
+        tags: ['من البوت', 'مؤهل'],
+        customFields: {
+          qualificationScore: data.seriousnessScore,
+          propertyType: data.propertyType,
+          budget: data.budget?.max,
+          budgetCurrency: data.budget?.currency || 'SAR',
+          location: data.location?.city,
+          district: data.location?.district,
+          timeline: data.timeline,
+          financingNeeded: data.financingNeeded,
+        },
+      },
+    });
+
+    this.logger.log(`Created contact ${contact.id} from lead ${lead.id}`);
+
+    return contact;
+  }
+
+  /**
+   * Generate product suggestions for a lead based on qualification data
+   */
+  private async generateProductSuggestions(
+    tenantId: string,
+    leadId: string,
+    data: QualificationData,
+  ): Promise<number> {
+    try {
+      // Build search criteria from qualification data
+      const searchCriteria = {
+        propertyType: data.propertyType,
+        budgetMax: data.budget?.max,
+        city: data.location?.city,
+        district: data.location?.district,
+        limit: 10,
+      };
+
+      // Find matching products
+      const matches = await this.productSuggestionService.findMatchingProducts(
+        tenantId,
+        searchCriteria,
+      );
+
+      if (matches.length === 0) {
+        this.logger.log(`No product matches found for lead ${leadId}`);
+        return 0;
+      }
+
+      // Create suggestions
+      await this.productSuggestionService.createSuggestions(leadId, matches);
+
+      this.logger.log(
+        `Created ${matches.length} product suggestions for lead ${leadId}`,
+      );
+
+      return matches.length;
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to generate product suggestions for lead ${leadId}: ${error.message}`,
+      );
+      return 0;
+    }
   }
 
   /**

@@ -26,6 +26,8 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { BotpressModule } from './modules/integrations/botpress';
 import { WhatsAppModule } from './modules/integrations/whatsapp';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
   imports: [
@@ -97,6 +99,8 @@ import { WhatsAppModule } from './modules/integrations/whatsapp';
     ConversationsModule,
     BotpressModule,
     WhatsAppModule,
+    ProjectsModule,
+    ProductsModule,
   ],
   providers: [
     {

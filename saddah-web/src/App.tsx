@@ -21,6 +21,9 @@ const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage').then(m => (
 const ConversationsPage = lazy(() => import('@/pages/conversations/ConversationsPage').then(m => ({ default: m.ConversationsPage })));
 const PipelinesPage = lazy(() => import('@/pages/pipelines/PipelinesPage').then(m => ({ default: m.PipelinesPage })));
 const UsersPage = lazy(() => import('@/pages/users/UsersPage').then(m => ({ default: m.UsersPage })));
+const ProjectsPage = lazy(() => import('@/pages/projects/ProjectsPage').then(m => ({ default: m.ProjectsPage })));
+const ProjectDetailPage = lazy(() => import('@/pages/projects/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
+const ProductsPage = lazy(() => import('@/pages/products/ProductsPage').then(m => ({ default: m.ProductsPage })));
 
 // Layouts
 import { AppShell } from '@/components/layout/AppShell';
@@ -155,6 +158,21 @@ function App() {
               <UsersPage />
             </Suspense>
           </AdminRoute>
+        } />
+        <Route path="projects" element={
+          <Suspense fallback={<PageLoader />}>
+            <ProjectsPage />
+          </Suspense>
+        } />
+        <Route path="projects/:id" element={
+          <Suspense fallback={<PageLoader />}>
+            <ProjectDetailPage />
+          </Suspense>
+        } />
+        <Route path="products" element={
+          <Suspense fallback={<PageLoader />}>
+            <ProductsPage />
+          </Suspense>
         } />
       </Route>
 

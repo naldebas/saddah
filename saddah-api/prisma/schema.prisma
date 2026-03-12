@@ -33,6 +33,7 @@ model Tenant {
   conversations  Conversation[]
   pipelines      Pipeline[]
   whatsAppConfig WhatsAppConfig?
+  projects       Project[]
 
   @@map("tenants")
 }
@@ -95,6 +96,7 @@ model Contact {
   tenantId  String  @map("tenant_id")
   ownerId   String  @map("owner_id")
   companyId String? @map("company_id")
+  leadId    String? @map("lead_id") // Link to original lead
 
   firstName    String   @map("first_name")
   lastName     String   @map("last_name")
@@ -112,6 +114,7 @@ model Contact {
   tenant        Tenant         @relation(fields: [tenantId], references: [id])
   owner         User           @relation("ContactOwner", fields: [ownerId], references: [id])
   company       Company?       @relation(fields: [companyId], references: [id])
+  lead          Lead?          @relation(fields: [leadId], references: [id])
   deals         Deal[]
   activities    Activity[]
   conversations Conversation[]
@@ -120,6 +123,7 @@ model Contact {
   @@index([tenantId, email])
   @@index([tenantId, phone])
   @@index([tenantId, ownerId])
+  @@index([tenantId, leadId])
   @@map("contacts")
 }
 
@@ -195,6 +199,7 @@ model Deal {
   companyId  String? @map("company_id")
   pipelineId String  @map("pipeline_id")
   stageId    String  @map("stage_id")
+  productId  String? @map("product_id") // Link to a specific property unit
 
   title             String
   value             Decimal   @db.Decimal(15, 2)
@@ -215,6 +220,7 @@ model Deal {
   company    Company?      @relation(fields: [companyId], references: [id])
   pipeline   Pipeline      @relation(fields: [pipelineId], references: [id])
   stage      PipelineStage @relation(fields: [stageId], references: [id])
+  product    Product?      @relation(fields: [productId], references: [id])
   activities Activity[]
 
   @@index([tenantId])
@@ -224,6 +230,7 @@ model Deal {
   @@index([tenantId, contactId])
   @@index([tenantId, companyId])
   @@index([tenantId, pipelineId])
+  @@index([tenantId, productId])
   @@index([tenantId, createdAt])
   @@index([tenantId, closedAt])
   @@map("deals")
@@ -234,9 +241,10 @@ model Deal {
 // ============================================
 
 model Lead {
-  id       String  @id @default(uuid())
-  tenantId String  @map("tenant_id")
-  ownerId  String? @map("owner_id")
+  id        String  @id @default(uuid())
+  tenantId  String  @map("tenant_id")
+  ownerId   String? @map("owner_id")
+  contactId String? @map("contact_id") // Link to contact created from this lead
 
   firstName            String    @map("first_name")
   lastName             String?   @map("last_name")
@@ -262,9 +270,11 @@ model Lead {
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
-  tenant       Tenant             @relation(fields: [tenantId], references: [id])
-  owner        User?              @relation("LeadOwner", fields: [ownerId], references: [id])
-  scoreHistory LeadScoreHistory[]
+  tenant             Tenant                  @relation(fields: [tenantId], references: [id])
+  owner              User?                   @relation("LeadOwner", fields: [ownerId], references: [id])
+  contacts           Contact[]
+  scoreHistory       LeadScoreHistory[]
+  productSuggestions LeadProductSuggestion[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -272,6 +282,7 @@ model Lead {
   @@index([tenantId, ownerId])
   @@index([tenantId, createdAt])
   @@index([tenantId, sourceId])
+  @@index([tenantId, contactId])
   @@map("leads")
 }
 
@@ -543,4 +554,81 @@ model BotpressConversation {
   @@index([tenantId])
   @@index([botpressConvId])
   @@map("botpress_conversations")
+}
+
+// ============================================
+// PROJECTS & PRODUCTS (Real Estate)
+// ============================================
+
+model Project {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String   // اسم المشروع
+  city        String   // المدينة
+  district    String?  // الحي
+  type        String   // residential, commercial, mixed
+  description String?  @db.Text
+  totalUnits  Int      @default(0) @map("total_units")
+  status      String   @default("active") // active, coming_soon, sold_out
+  images      Json     @default("[]")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@index([tenantId])
+  @@index([tenantId, city])
+  @@index([tenantId, status])
+  @@map("projects")
+}
+
+model Product {
+  id         String  @id @default(uuid())
+  tenantId   String  @map("tenant_id")
+  projectId  String  @map("project_id")
+  unitNumber String  @map("unit_number") // رقم الوحدة
+  type       String  // villa, apartment, townhouse, floor, land
+  area       Decimal @db.Decimal(10, 2) // المساحة
+  bedrooms   Int?    // الغرف
+  bathrooms  Int?    // الحمامات
+  floor      Int?    // الطابق
+  price      Decimal @db.Decimal(15, 2) // السعر
+  currency   String  @default("SAR")
+  status     String  @default("available") // available, reserved, sold
+  features   String[] @default([])
+  images     Json     @default("[]")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  project     Project                 @relation(fields: [projectId], references: [id])
+  deals       Deal[]
+  suggestions LeadProductSuggestion[]
+
+  @@unique([projectId, unitNumber])
+  @@index([tenantId, status])
+  @@index([tenantId, type])
+  @@index([tenantId, price])
+  @@index([projectId])
+  @@map("products")
+}
+
+model LeadProductSuggestion {
+  id          String   @id @default(uuid())
+  leadId      String   @map("lead_id")
+  productId   String   @map("product_id")
+  matchScore  Int      @default(0) @map("match_score") // نسبة التطابق 0-100
+  matchReason Json     @default("{}") @map("match_reason")
+  status      String   @default("suggested") // suggested, viewed, interested, rejected
+  suggestedAt DateTime @default(now()) @map("suggested_at")
+
+  lead    Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, productId])
+  @@index([leadId])
+  @@index([productId])
+  @@map("lead_product_suggestions")
 }

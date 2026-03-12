@@ -136,4 +136,27 @@ export const queryKeys = {
     plan: () => [...queryKeys.settings.all, 'plan'] as const,
     whatsapp: () => [...queryKeys.settings.all, 'whatsapp'] as const,
   },
+
+  // Projects
+  projects: {
+    all: ['projects'] as const,
+    lists: () => [...queryKeys.projects.all, 'list'] as const,
+    list: (params: QueryParams) => [...queryKeys.projects.lists(), params] as const,
+    details: () => [...queryKeys.projects.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.projects.details(), id] as const,
+    statistics: () => [...queryKeys.projects.all, 'statistics'] as const,
+    cities: () => [...queryKeys.projects.all, 'cities'] as const,
+  },
+
+  // Products
+  products: {
+    all: ['products'] as const,
+    lists: () => [...queryKeys.products.all, 'list'] as const,
+    list: (params: QueryParams) => [...queryKeys.products.lists(), params] as const,
+    details: () => [...queryKeys.products.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.products.details(), id] as const,
+    statistics: () => [...queryKeys.products.all, 'statistics'] as const,
+    search: (params: QueryParams) => [...queryKeys.products.all, 'search', params] as const,
+    suggestions: (leadId: string) => [...queryKeys.products.all, 'suggestions', leadId] as const,
+  },
 };

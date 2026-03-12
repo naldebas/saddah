@@ -143,3 +143,28 @@ export {
   useDeleteWhatsAppConfig,
   useRotateWhatsAppSecret,
 } from './useSettings';
+
+// Projects hooks
+export {
+  useProjects,
+  useProject,
+  useProjectStatistics,
+  useProjectCities,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
+} from './useProjects';
+
+// Products hooks
+export {
+  useProducts,
+  useProduct,
+  useProductStatistics,
+  useSearchProducts,
+  useProductSuggestions,
+  useCreateProduct,
+  useUpdateProduct,
+  useUpdateProductStatus,
+  useDeleteProduct,
+  useUpdateSuggestionStatus,
+} from './useProducts';
