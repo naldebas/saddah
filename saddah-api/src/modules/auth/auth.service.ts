@@ -225,6 +225,8 @@ export class AuthService {
         'reports.*',
         'settings.*',
         'pipelines.*',
+        'projects.*',
+        'products.*',
       ],
       sales_manager: [
         'users.view',
@@ -235,6 +237,8 @@ export class AuthService {
         'activities.*',
         'conversations.*',
         'reports.view',
+        'projects.view',
+        'products.view',
       ],
       sales_rep: [
         'contacts.view',
