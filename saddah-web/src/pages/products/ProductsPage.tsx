@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Plus, Home, Building2, MapPin, DollarSign } from 'lucide-react';
-import { Button, Card, Spinner } from '@/components/ui';
+import { Home, MapPin, DollarSign } from 'lucide-react';
+import { Card, Spinner } from '@/components/ui';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
-import { Input } from '@/components/ui/Input';
 import { DataTable, Column } from '@/components/ui/DataTable';
 import { useProducts, useProductStatistics, useProjects, useProjectCities } from '@/hooks';
 import type { Product, ProductType, ProductStatus } from '@/services/products.api';

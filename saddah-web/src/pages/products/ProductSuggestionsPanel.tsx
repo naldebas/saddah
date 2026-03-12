@@ -1,4 +1,4 @@
-import { Home, Building2, MapPin, ThumbsUp, ThumbsDown, Eye, ChevronRight } from 'lucide-react';
+import { Home, Building2, MapPin, ThumbsUp, ThumbsDown, ChevronRight } from 'lucide-react';
 import { Button, Card, Spinner } from '@/components/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useProductSuggestions, useUpdateSuggestionStatus } from '@/hooks';

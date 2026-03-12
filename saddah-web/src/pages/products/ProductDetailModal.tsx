@@ -26,16 +26,6 @@ const statusLabels: Record<string, string> = {
   sold: 'مباعة',
 };
 
-const typeLabels: Record<string, string> = {
-  villa: 'فيلا',
-  apartment: 'شقة',
-  townhouse: 'تاون هاوس',
-  floor: 'دور',
-  land: 'أرض',
-  office: 'مكتب',
-  shop: 'محل',
-};
-
 export function ProductDetailModal({ isOpen, onClose, productId }: ProductDetailModalProps) {
   const { data: product, isLoading } = useProduct(productId);
   const updateProduct = useUpdateProduct();

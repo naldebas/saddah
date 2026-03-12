@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Plus, Edit, Trash2, Building2, MapPin, Home, DollarSign } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowRight, Plus, Edit, Trash2, Building2, MapPin, Home } from 'lucide-react';
 import { Button, Card, Spinner } from '@/components/ui';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, Column } from '@/components/ui/DataTable';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useProject, useProducts, useDeleteProject, useDeleteProduct } from '@/hooks';
-import type { Product, ProductStatus } from '@/services/products.api';
+import type { Product } from '@/services/products.api';
 import { EditProjectModal } from './EditProjectModal';
 import { CreateProductModal } from '../products/CreateProductModal';
 import { ProductDetailModal } from '../products/ProductDetailModal';
@@ -337,7 +336,7 @@ export function ProjectDetailPage() {
       )}
 
       {/* Delete Confirmations */}
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={deleteConfirm?.type === 'project'}
         onClose={() => setDeleteConfirm(null)}
         onConfirm={handleDeleteProject}
@@ -347,7 +346,7 @@ export function ProjectDetailPage() {
         variant="danger"
       />
 
-      <ConfirmDialog
+      <ConfirmModal
         isOpen={deleteConfirm?.type === 'product'}
         onClose={() => setDeleteConfirm(null)}
         onConfirm={() => deleteConfirm && handleDeleteProduct(deleteConfirm.id)}
