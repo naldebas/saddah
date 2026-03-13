@@ -18,13 +18,14 @@ RUN npm ci
 COPY . .
 
 # Build args for Vite env vars (baked in at build time)
+# VITE_API_BASE_URL is relative so nginx proxies API calls
 ARG VITE_API_BASE_URL=/api/v1
 ARG VITE_APP_NAME="Saddah CRM"
 ARG VITE_APP_VERSION=1.0.0
-ARG VITE_APP_ENVIRONMENT=staging
+ARG VITE_APP_ENVIRONMENT=production
 ARG VITE_ENABLE_MOCK_DATA=false
 ARG VITE_ENABLE_DEBUG_MODE=false
-ARG VITE_ENABLE_ANALYTICS=false
+ARG VITE_ENABLE_ANALYTICS=true
 
 # Build the application
 RUN npm run build
@@ -46,7 +47,8 @@ RUN chmod +x /docker-entrypoint.sh
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Railway sets PORT env var; nginx template uses it
-# API_URL will be set as a Railway variable pointing to the backend service
+# API_URL must be set as a Railway variable pointing to the backend service's PRIVATE url
+# e.g. http://saddah-api.railway.internal:3000
 ENV PORT=8080
 ENV API_URL=http://localhost:3000
 

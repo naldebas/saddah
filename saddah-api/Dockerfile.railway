@@ -45,7 +45,6 @@ COPY prisma ./prisma/
 RUN npm ci --omit=dev --legacy-peer-deps
 
 # Copy ALL Prisma packages from builder (avoids npx downloading Prisma 7.x)
-# Includes: .prisma (generated), @prisma/* (client, debug, engines, etc.), prisma CLI
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
@@ -56,19 +55,20 @@ RUN mkdir -p node_modules/.bin && ln -s ../prisma/build/index.js node_modules/.b
 # Copy compiled application from builder
 COPY --from=builder /app/dist ./dist
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
 
-# Set ownership
-RUN chown -R nestjs:nodejs /app
+# Create non-root user and set ownership
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001 && \
+    chown -R nestjs:nodejs /app
 
 USER nestjs
 
 # Railway uses $PORT env var
 EXPOSE ${PORT:-3000}
 
-# Run migrations then start server
 # Railway sets DATABASE_URL automatically from the Postgres add-on
-# Use local prisma binary (not npx) to avoid downloading Prisma 7.x at runtime
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/main"]
+# Entrypoint handles: migrations -> start server
+CMD ["./docker-entrypoint.sh"]
