@@ -8,6 +8,7 @@ import { ProductsModule } from '@/modules/products/products.module';
 // Controllers
 import { BotpressController, BotpressConversationsController } from './botpress.controller';
 import { BotpressWebhookController } from './botpress-webhook.controller';
+import { BotpressBotApiController } from './botpress-bot-api.controller';
 
 // Services
 import { BotpressConfigService } from './botpress-config.service';
@@ -15,6 +16,7 @@ import { BotpressClientService } from './botpress-client.service';
 import { BotpressMessageService } from './botpress-message.service';
 import { BotpressSyncService } from './botpress-sync.service';
 import { BotpressQualificationProcessor } from './botpress-qualification.processor';
+import { BotpressBotApiService } from './botpress-bot-api.service';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { BotpressQualificationProcessor } from './botpress-qualification.process
     BotpressController,
     BotpressConversationsController,
     BotpressWebhookController,
+    BotpressBotApiController,
   ],
   providers: [
     BotpressConfigService,
@@ -34,6 +37,7 @@ import { BotpressQualificationProcessor } from './botpress-qualification.process
     BotpressMessageService,
     BotpressSyncService,
     BotpressQualificationProcessor,
+    BotpressBotApiService,
   ],
   exports: [
     BotpressConfigService,

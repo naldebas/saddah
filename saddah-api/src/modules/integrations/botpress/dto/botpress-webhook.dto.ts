@@ -98,6 +98,17 @@ export class BotpressWebhookPayloadDto {
   @IsOptional()
   collectedAt?: string;
 
+  // Project fields (from dynamic bot flow)
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  projectId?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  projectName?: string;
+
   // Handoff fields
   @ApiPropertyOptional()
   @IsString()

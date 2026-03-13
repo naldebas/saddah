@@ -190,6 +190,8 @@ export class BotpressWebhookController {
         financingNeeded: event.payload.financingNeeded,
         seriousnessScore: event.payload.seriousnessScore || 0,
         collectedAt: event.payload.collectedAt || event.timestamp,
+        projectId: event.payload.projectId,
+        projectName: event.payload.projectName,
       },
     );
 

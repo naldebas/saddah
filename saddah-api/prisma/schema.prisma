@@ -245,6 +245,7 @@ model Lead {
   tenantId  String  @map("tenant_id")
   ownerId   String? @map("owner_id")
   contactId String? @map("contact_id") // Link to contact created from this lead
+  projectId String? @map("project_id") // Interested project from bot
 
   firstName            String    @map("first_name")
   lastName             String?   @map("last_name")
@@ -272,6 +273,7 @@ model Lead {
 
   tenant             Tenant                  @relation(fields: [tenantId], references: [id])
   owner              User?                   @relation("LeadOwner", fields: [ownerId], references: [id])
+  project            Project?                @relation(fields: [projectId], references: [id])
   contacts           Contact[]
   scoreHistory       LeadScoreHistory[]
   productSuggestions LeadProductSuggestion[]
@@ -283,6 +285,7 @@ model Lead {
   @@index([tenantId, createdAt])
   @@index([tenantId, sourceId])
   @@index([tenantId, contactId])
+  @@index([tenantId, projectId])
   @@map("leads")
 }
 
@@ -577,10 +580,13 @@ model Project {
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id])
   products Product[]
+  leads    Lead[]
 
   @@index([tenantId])
   @@index([tenantId, city])
+  @@index([tenantId, district])
   @@index([tenantId, status])
+  @@index([tenantId, type, status])
   @@map("projects")
 }
 

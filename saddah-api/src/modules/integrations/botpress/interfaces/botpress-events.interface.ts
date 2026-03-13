@@ -67,6 +67,8 @@ export interface QualificationData {
   seriousnessScore: number;
   notes?: string;
   collectedAt: string;
+  projectId?: string;
+  projectName?: string;
 }
 
 export interface BotpressHandoffEvent extends BotpressWebhookEvent {
