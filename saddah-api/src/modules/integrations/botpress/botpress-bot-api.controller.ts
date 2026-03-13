@@ -7,6 +7,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { BotpressBotApiService } from './botpress-bot-api.service';
@@ -38,10 +39,16 @@ export class BotpressBotApiController {
   @ApiParam({ name: 'tenantId', description: 'Tenant ID' })
   @ApiResponse({ status: 200, description: 'List of property types' })
   async getPropertyTypes(@Param('tenantId') tenantId: string): Promise<string[]> {
-    await this.ensureTenant(tenantId);
-    const types = await this.botApiService.getPropertyTypes(tenantId);
-    this.logger.debug(`Property types for ${tenantId}: ${types.join(', ')}`);
-    return types;
+    try {
+      await this.ensureTenant(tenantId);
+      const types = await this.botApiService.getPropertyTypes(tenantId);
+      this.logger.debug(`Property types for ${tenantId}: ${types.join(', ')}`);
+      return types;
+    } catch (error: any) {
+      this.logger.error(`getPropertyTypes error: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Get('districts')
@@ -53,8 +60,14 @@ export class BotpressBotApiController {
     @Param('tenantId') tenantId: string,
     @Query('type') type?: string,
   ): Promise<string[]> {
-    await this.ensureTenant(tenantId);
-    return this.botApiService.getDistricts(tenantId, type);
+    try {
+      await this.ensureTenant(tenantId);
+      return await this.botApiService.getDistricts(tenantId, type);
+    } catch (error: any) {
+      this.logger.error(`getDistricts error: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Get('projects')
@@ -68,8 +81,14 @@ export class BotpressBotApiController {
     @Query('district') district?: string,
     @Query('type') type?: string,
   ): Promise<any[]> {
-    await this.ensureTenant(tenantId);
-    return this.botApiService.getProjects(tenantId, district, type);
+    try {
+      await this.ensureTenant(tenantId);
+      return await this.botApiService.getProjects(tenantId, district, type);
+    } catch (error: any) {
+      this.logger.error(`getProjects error: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   @Get('projects/:projectId')
@@ -82,7 +101,13 @@ export class BotpressBotApiController {
     @Param('tenantId') tenantId: string,
     @Param('projectId') projectId: string,
   ): Promise<any> {
-    await this.ensureTenant(tenantId);
-    return this.botApiService.getProjectDetails(tenantId, projectId);
+    try {
+      await this.ensureTenant(tenantId);
+      return await this.botApiService.getProjectDetails(tenantId, projectId);
+    } catch (error: any) {
+      this.logger.error(`getProjectDetails error: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
