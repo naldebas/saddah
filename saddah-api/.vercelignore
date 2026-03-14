@@ -1,0 +1,11 @@
+node_modules
+test
+coverage
+.env
+.env.local
+docker-compose.yml
+Dockerfile.railway
+docker-entrypoint.sh
+railway.toml
+*.spec.ts
+*.e2e-spec.ts

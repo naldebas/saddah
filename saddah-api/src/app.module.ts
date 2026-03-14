@@ -38,7 +38,7 @@ import { ProductsModule } from './modules/products/products.module';
       load: [whatsappConfig, bullConfig],
     }),
 
-    // Message Queue (Bull)
+    // Message Queue (Bull) - supports Upstash Redis (TLS)
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -47,6 +47,8 @@ import { ProductsModule } from './modules/products/products.module';
           host: configService.get('bull.redis.host', 'localhost'),
           port: configService.get('bull.redis.port', 6379),
           password: configService.get('bull.redis.password', ''),
+          ...(configService.get('bull.redis.tls') ? { tls: configService.get('bull.redis.tls') } : {}),
+          maxRetriesPerRequest: configService.get('bull.redis.maxRetriesPerRequest', null),
         },
         defaultJobOptions: configService.get('bull.defaultJobOptions'),
       }),

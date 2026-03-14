@@ -1,0 +1,10 @@
+node_modules
+coverage
+.env
+.env.local
+Dockerfile.railway
+nginx.conf
+docker-entrypoint.sh
+railway.toml
+playwright-report
+test-results
