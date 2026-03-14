@@ -109,6 +109,12 @@ export class BotpressWebhookPayloadDto {
   @IsOptional()
   projectName?: string;
 
+  // Source field (e.g., 'whatsapp_bot')
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  source?: string;
+
   // Handoff fields
   @ApiPropertyOptional()
   @IsString()
