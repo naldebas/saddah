@@ -195,6 +195,30 @@ export class BotpressQualificationProcessor {
         // Update existing lead with new data
         lead = await this.updateLead(lead.id, data);
 
+        // Create Contact if one doesn't exist yet for this lead
+        if (!lead.contactId) {
+          contact = await this.createContact(tenantId, lead, data);
+          isNewContact = true;
+
+          // Link lead to contact
+          await this.prisma.lead.update({
+            where: { id: lead.id },
+            data: { contactId: contact.id },
+          });
+
+          // Link conversation to contact
+          if (conversation) {
+            await this.prisma.conversation.update({
+              where: { id: conversation.id },
+              data: { contactId: contact.id },
+            });
+          }
+
+          this.logger.log(
+            `Created contact ${contact.id} for existing lead ${lead.id}`,
+          );
+        }
+
         // Regenerate product suggestions for updated lead
         suggestionsCount = await this.generateProductSuggestions(tenantId, lead.id, data);
       }
@@ -323,7 +347,7 @@ export class BotpressQualificationProcessor {
         scoreGrade: this.calculateGrade(data.seriousnessScore),
         propertyType: data.propertyType,
         budget: data.budget?.max,
-        location: data.location?.district || data.location?.city,
+        location: data.location?.district || data.location?.city || undefined,
         timeline: data.timeline,
         financingNeeded: data.financingNeeded,
         projectId: data.projectId || undefined,
@@ -523,9 +547,33 @@ export class BotpressQualificationProcessor {
     // Only update fields that have values
     if (data.propertyType) updates.propertyType = data.propertyType;
     if (data.budget?.max) updates.budget = data.budget.max;
-    if (data.location?.city) updates.location = data.location.city;
+    if (data.location?.district) {
+      updates.location = data.location.district;
+    } else if (data.location?.city) {
+      updates.location = data.location.city;
+    }
     if (data.timeline) updates.timeline = data.timeline;
     if (data.financingNeeded !== undefined) updates.financingNeeded = data.financingNeeded;
+    if (data.projectId) updates.projectId = data.projectId;
+
+    // Update custom fields with latest qualification data
+    const existingLead = await this.prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { customFields: true },
+    });
+
+    updates.customFields = {
+      ...((existingLead?.customFields as any) || {}),
+      qualificationDate: new Date().toISOString(),
+      botpressQualification: true,
+      district: data.location?.district,
+      city: data.location?.city,
+      budgetCurrency: data.budget?.currency,
+      projectName: data.projectName,
+    };
+
+    // Update notes with latest qualification
+    updates.notes = this.buildLeadNotes(data);
 
     return this.prisma.lead.update({
       where: { id: leadId },
