@@ -54,6 +54,8 @@ export function DealDetailModal({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [isLostReasonModalOpen, setIsLostReasonModalOpen] = useState(false);
+  const [lostReason, setLostReason] = useState('');
 
   useEffect(() => {
     if (!isOpen || !dealId) return;
@@ -91,11 +93,15 @@ export function DealDetailModal({
     }
   };
 
-  const handleCloseDeal = async (status: 'won' | 'lost') => {
+  const handleCloseDeal = async (status: 'won' | 'lost', reason?: string) => {
     if (!dealId) return;
+    if (status === 'lost' && !reason) {
+      setIsLostReasonModalOpen(true);
+      return;
+    }
     setIsClosing(true);
     try {
-      await dealsApi.close(dealId, { status });
+      await dealsApi.close(dealId, { status, ...(reason && { lostReason: reason }) });
       toast.success(status === 'won' ? 'تم تسجيل الفوز بالصفقة' : 'تم تسجيل خسارة الصفقة');
       onClose();
       onDealUpdated();
@@ -105,6 +111,16 @@ export function DealDetailModal({
     } finally {
       setIsClosing(false);
     }
+  };
+
+  const handleConfirmLost = () => {
+    if (!lostReason.trim()) {
+      toast.error('يجب تحديد سبب الخسارة');
+      return;
+    }
+    setIsLostReasonModalOpen(false);
+    handleCloseDeal('lost', lostReason.trim());
+    setLostReason('');
   };
 
   const handleReopenDeal = async () => {
@@ -363,6 +379,43 @@ export function DealDetailModal({
         }}
         deal={deal}
       />
+
+      {/* Lost Reason Modal */}
+      {isLostReasonModalOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => { setIsLostReasonModalOpen(false); setLostReason(''); }} />
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">سبب الخسارة</h3>
+              <p className="text-sm text-gray-500">يرجى تحديد سبب خسارة هذه الصفقة</p>
+              <textarea
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                rows={3}
+                placeholder="أدخل سبب الخسارة..."
+                value={lostReason}
+                onChange={(e) => setLostReason(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => { setIsLostReasonModalOpen(false); setLostReason(''); }}
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  variant="primary"
+                  className="bg-error-600 hover:bg-error-700 text-white"
+                  onClick={handleConfirmLost}
+                  disabled={isClosing}
+                >
+                  تأكيد الخسارة
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
