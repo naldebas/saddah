@@ -658,6 +658,216 @@ async function main() {
   console.log(`✅ Created ${activitiesData.length} activities`);
 
   // ============================================
+  // PROJECTS & PRODUCTS
+  // ============================================
+
+  const projectsData = [
+    // 1. الرياض - حي النرجس (سكني)
+    {
+      name: 'ضاحية النرجس السكنية',
+      city: 'الرياض',
+      district: 'حي النرجس',
+      type: 'residential',
+      description: 'مشروع سكني متكامل في قلب حي النرجس يضم فلل وشقق وتاون هاوس بتصاميم عصرية ومرافق خدمية متكاملة',
+      totalUnits: 45,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'NRG-V01', type: 'villa', area: 350, bedrooms: 5, bathrooms: 5, floor: 0, price: 3200000, status: 'available', features: ['مسبح خاص', 'حديقة', 'مجلس خارجي', 'غرفة سائق', 'مصعد'] },
+        { unitNumber: 'NRG-V02', type: 'villa', area: 400, bedrooms: 6, bathrooms: 6, floor: 0, price: 3800000, status: 'reserved', features: ['مسبح خاص', 'حديقة كبيرة', 'قبو', 'غرفة خادمة', 'مصعد'] },
+        { unitNumber: 'NRG-V03', type: 'villa', area: 300, bedrooms: 4, bathrooms: 4, floor: 0, price: 2700000, status: 'available', features: ['حديقة', 'مجلس', 'غرفة سائق'] },
+        { unitNumber: 'NRG-TH01', type: 'townhouse', area: 220, bedrooms: 4, bathrooms: 3, floor: 0, price: 1800000, status: 'available', features: ['حديقة خاصة', 'موقف سيارتين', 'تراس'] },
+        { unitNumber: 'NRG-TH02', type: 'townhouse', area: 200, bedrooms: 3, bathrooms: 3, floor: 0, price: 1600000, status: 'sold', features: ['حديقة خاصة', 'موقف سيارتين'] },
+        { unitNumber: 'NRG-A01', type: 'apartment', area: 150, bedrooms: 3, bathrooms: 2, floor: 2, price: 850000, status: 'available', features: ['بلكونة', 'مطبخ مجهز', 'موقف'] },
+        { unitNumber: 'NRG-A02', type: 'apartment', area: 120, bedrooms: 2, bathrooms: 2, floor: 3, price: 680000, status: 'available', features: ['بلكونة', 'مطبخ مجهز'] },
+        { unitNumber: 'NRG-A03', type: 'apartment', area: 180, bedrooms: 4, bathrooms: 3, floor: 1, price: 1050000, status: 'reserved', features: ['بلكونة كبيرة', 'مطبخ مجهز', 'غرفة خادمة'] },
+      ],
+    },
+    // 2. الرياض - حي الملقا (سكني)
+    {
+      name: 'أبراج الملقا الفاخرة',
+      city: 'الرياض',
+      district: 'حي الملقا',
+      type: 'residential',
+      description: 'أبراج سكنية فاخرة في أرقى أحياء شمال الرياض مع إطلالات بانورامية وخدمات فندقية',
+      totalUnits: 60,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'MLQ-A01', type: 'apartment', area: 200, bedrooms: 3, bathrooms: 3, floor: 10, price: 1500000, status: 'available', features: ['إطلالة بانورامية', 'مطبخ إيطالي', 'تكييف مركزي', 'موقفين'] },
+        { unitNumber: 'MLQ-A02', type: 'apartment', area: 250, bedrooms: 4, bathrooms: 4, floor: 15, price: 2200000, status: 'available', features: ['إطلالة بانورامية', 'جاكوزي', 'غرفة خادمة', 'مطبخ إيطالي'] },
+        { unitNumber: 'MLQ-A03', type: 'apartment', area: 160, bedrooms: 2, bathrooms: 2, floor: 5, price: 1100000, status: 'reserved', features: ['بلكونة', 'مطبخ مجهز', 'تكييف مركزي'] },
+        { unitNumber: 'MLQ-A04', type: 'apartment', area: 300, bedrooms: 5, bathrooms: 4, floor: 20, price: 3500000, status: 'available', features: ['بنتهاوس', 'تراس خاص', 'مسبح خاص', 'إطلالة 360'] },
+        { unitNumber: 'MLQ-F01', type: 'floor', area: 500, bedrooms: 6, bathrooms: 5, floor: 2, price: 4200000, status: 'available', features: ['دور كامل', 'مدخل خاص', 'حديقة سطح', 'مصعد خاص'] },
+        { unitNumber: 'MLQ-F02', type: 'floor', area: 450, bedrooms: 5, bathrooms: 4, floor: 3, price: 3800000, status: 'sold', features: ['دور كامل', 'مدخل خاص', 'بلكونة واسعة'] },
+      ],
+    },
+    // 3. جدة - حي الشاطئ (سكني)
+    {
+      name: 'مساكن الشاطئ البحرية',
+      city: 'جدة',
+      district: 'حي الشاطئ',
+      type: 'residential',
+      description: 'مشروع سكني فاخر على كورنيش جدة بإطلالات بحرية خلابة وتصاميم مستوحاة من الطراز المتوسطي',
+      totalUnits: 35,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'SHT-V01', type: 'villa', area: 500, bedrooms: 6, bathrooms: 7, floor: 0, price: 8500000, status: 'available', features: ['إطلالة بحرية', 'مسبح خاص', 'حديقة', 'مرسى قوارب', 'مصعد'] },
+        { unitNumber: 'SHT-V02', type: 'villa', area: 450, bedrooms: 5, bathrooms: 6, floor: 0, price: 7200000, status: 'reserved', features: ['إطلالة بحرية', 'مسبح خاص', 'حديقة كبيرة'] },
+        { unitNumber: 'SHT-TH01', type: 'townhouse', area: 280, bedrooms: 4, bathrooms: 4, floor: 0, price: 3500000, status: 'available', features: ['إطلالة بحرية', 'تراس', 'حديقة خاصة', 'موقف مزدوج'] },
+        { unitNumber: 'SHT-A01', type: 'apartment', area: 220, bedrooms: 3, bathrooms: 3, floor: 8, price: 2800000, status: 'available', features: ['إطلالة بحرية', 'بلكونة واسعة', 'مطبخ فاخر', 'جيم مشترك'] },
+        { unitNumber: 'SHT-A02', type: 'apartment', area: 180, bedrooms: 3, bathrooms: 2, floor: 5, price: 2200000, status: 'available', features: ['إطلالة بحرية', 'بلكونة', 'مطبخ مجهز'] },
+        { unitNumber: 'SHT-A03', type: 'apartment', area: 140, bedrooms: 2, bathrooms: 2, floor: 3, price: 1600000, status: 'sold', features: ['بلكونة', 'مطبخ مجهز', 'موقف'] },
+      ],
+    },
+    // 4. جدة - حي الحمراء (مختلط)
+    {
+      name: 'واحة الحمراء',
+      city: 'جدة',
+      district: 'حي الحمراء',
+      type: 'mixed',
+      description: 'مشروع متعدد الاستخدامات يجمع بين الوحدات السكنية والمحلات التجارية والمكاتب في قلب جدة',
+      totalUnits: 50,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'HMR-A01', type: 'apartment', area: 170, bedrooms: 3, bathrooms: 2, floor: 5, price: 1200000, status: 'available', features: ['إطلالة على الحديقة', 'مطبخ مجهز', 'نادي صحي'] },
+        { unitNumber: 'HMR-A02', type: 'apartment', area: 130, bedrooms: 2, bathrooms: 2, floor: 3, price: 850000, status: 'available', features: ['بلكونة', 'مطبخ مجهز'] },
+        { unitNumber: 'HMR-TH01', type: 'townhouse', area: 240, bedrooms: 4, bathrooms: 3, floor: 0, price: 2100000, status: 'reserved', features: ['حديقة خاصة', 'تراس سطح', 'موقف مزدوج'] },
+        { unitNumber: 'HMR-F01', type: 'floor', area: 400, bedrooms: 0, bathrooms: 2, floor: 1, price: 3200000, status: 'available', features: ['دور تجاري', 'واجهة زجاجية', 'مدخل مستقل', 'مواقف خاصة'] },
+        { unitNumber: 'HMR-L01', type: 'land', area: 600, bedrooms: 0, bathrooms: 0, floor: 0, price: 4500000, status: 'available', features: ['أرض تجارية', 'شارعين', 'زاوية', 'صك إلكتروني'] },
+        { unitNumber: 'HMR-V01', type: 'villa', area: 380, bedrooms: 5, bathrooms: 5, floor: 0, price: 3600000, status: 'available', features: ['حديقة', 'مسبح', 'مجلس خارجي', 'غرفة سائق'] },
+      ],
+    },
+    // 5. الدمام - حي الشاطئ الشرقي (سكني)
+    {
+      name: 'إشراقة الشاطئ الشرقي',
+      city: 'الدمام',
+      district: 'حي الشاطئ الشرقي',
+      type: 'residential',
+      description: 'مجمع سكني عصري في حي الشاطئ الشرقي بالدمام مع إطلالات على الخليج العربي ومرافق ترفيهية',
+      totalUnits: 40,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'DSH-V01', type: 'villa', area: 320, bedrooms: 5, bathrooms: 4, floor: 0, price: 2800000, status: 'available', features: ['إطلالة بحرية', 'مسبح', 'حديقة', 'مجلس'] },
+        { unitNumber: 'DSH-V02', type: 'villa', area: 280, bedrooms: 4, bathrooms: 4, floor: 0, price: 2400000, status: 'sold', features: ['حديقة', 'مجلس خارجي', 'غرفة سائق'] },
+        { unitNumber: 'DSH-TH01', type: 'townhouse', area: 200, bedrooms: 3, bathrooms: 3, floor: 0, price: 1500000, status: 'available', features: ['حديقة خاصة', 'تراس', 'موقف سيارتين'] },
+        { unitNumber: 'DSH-A01', type: 'apartment', area: 160, bedrooms: 3, bathrooms: 2, floor: 6, price: 900000, status: 'available', features: ['إطلالة بحرية', 'بلكونة', 'مطبخ مجهز'] },
+        { unitNumber: 'DSH-A02', type: 'apartment', area: 120, bedrooms: 2, bathrooms: 2, floor: 4, price: 650000, status: 'available', features: ['بلكونة', 'مطبخ مجهز', 'موقف'] },
+        { unitNumber: 'DSH-L01', type: 'land', area: 450, bedrooms: 0, bathrooms: 0, floor: 0, price: 1800000, status: 'available', features: ['أرض سكنية', 'شارع 20م', 'صك إلكتروني'] },
+      ],
+    },
+    // 6. الخبر - حي الراكة (تجاري)
+    {
+      name: 'مركز الراكة التجاري',
+      city: 'الخبر',
+      district: 'حي الراكة',
+      type: 'commercial',
+      description: 'مركز تجاري ومكتبي حديث في حي الراكة بالخبر على الشارع الرئيسي مع مواقف واسعة',
+      totalUnits: 30,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'RKH-F01', type: 'floor', area: 600, bedrooms: 0, bathrooms: 4, floor: 1, price: 5500000, status: 'available', features: ['دور مكتبي', 'تشطيب فاخر', 'تكييف مركزي', 'نظام أمني'] },
+        { unitNumber: 'RKH-F02', type: 'floor', area: 600, bedrooms: 0, bathrooms: 4, floor: 2, price: 5200000, status: 'reserved', features: ['دور مكتبي', 'تشطيب فاخر', 'تكييف مركزي'] },
+        { unitNumber: 'RKH-F03', type: 'floor', area: 550, bedrooms: 0, bathrooms: 3, floor: 3, price: 4800000, status: 'available', features: ['دور مكتبي', 'تكييف مركزي', 'إطلالة'] },
+        { unitNumber: 'RKH-L01', type: 'land', area: 1200, bedrooms: 0, bathrooms: 0, floor: 0, price: 12000000, status: 'available', features: ['أرض تجارية', 'شارعين 40م', 'زاوية', 'على الطريق الرئيسي'] },
+        { unitNumber: 'RKH-L02', type: 'land', area: 800, bedrooms: 0, bathrooms: 0, floor: 0, price: 7500000, status: 'available', features: ['أرض تجارية', 'شارع 30م', 'موقع مميز'] },
+      ],
+    },
+    // 7. مكة المكرمة - حي العوالي (سكني)
+    {
+      name: 'ديار العوالي',
+      city: 'مكة المكرمة',
+      district: 'حي العوالي',
+      type: 'residential',
+      description: 'مشروع سكني راقي في حي العوالي بمكة المكرمة قريب من الحرم الشريف بتصاميم إسلامية أصيلة',
+      totalUnits: 55,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'AWL-V01', type: 'villa', area: 380, bedrooms: 5, bathrooms: 5, floor: 0, price: 4500000, status: 'available', features: ['قريب من الحرم', 'تصميم إسلامي', 'حديقة', 'مصعد', 'مسبح'] },
+        { unitNumber: 'AWL-V02', type: 'villa', area: 300, bedrooms: 4, bathrooms: 4, floor: 0, price: 3500000, status: 'available', features: ['قريب من الحرم', 'تصميم إسلامي', 'حديقة'] },
+        { unitNumber: 'AWL-A01', type: 'apartment', area: 180, bedrooms: 3, bathrooms: 2, floor: 4, price: 1200000, status: 'available', features: ['إطلالة على الحرم', 'مصعد', 'موقف', 'حارس أمن'] },
+        { unitNumber: 'AWL-A02', type: 'apartment', area: 140, bedrooms: 2, bathrooms: 2, floor: 6, price: 950000, status: 'reserved', features: ['إطلالة على الحرم', 'مصعد', 'مطبخ مجهز'] },
+        { unitNumber: 'AWL-A03', type: 'apartment', area: 100, bedrooms: 1, bathrooms: 1, floor: 2, price: 650000, status: 'available', features: ['استوديو فاخر', 'مفروش بالكامل', 'موقف'] },
+        { unitNumber: 'AWL-TH01', type: 'townhouse', area: 250, bedrooms: 4, bathrooms: 3, floor: 0, price: 2800000, status: 'available', features: ['تصميم إسلامي', 'حديقة خاصة', 'تراس سطح'] },
+        { unitNumber: 'AWL-F01', type: 'floor', area: 350, bedrooms: 4, bathrooms: 3, floor: 1, price: 2200000, status: 'sold', features: ['دور كامل', 'مدخل خاص', 'حديقة'] },
+      ],
+    },
+    // 8. المدينة المنورة - حي العزيزية (مختلط)
+    {
+      name: 'بوابة العزيزية',
+      city: 'المدينة المنورة',
+      district: 'حي العزيزية',
+      type: 'mixed',
+      description: 'مشروع متكامل في حي العزيزية قرب المسجد النبوي يجمع بين السكن والتجارة والضيافة',
+      totalUnits: 70,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'AZZ-A01', type: 'apartment', area: 160, bedrooms: 3, bathrooms: 2, floor: 5, price: 1100000, status: 'available', features: ['قريب من الحرم النبوي', 'مصعد', 'تكييف مركزي', 'حارس'] },
+        { unitNumber: 'AZZ-A02', type: 'apartment', area: 120, bedrooms: 2, bathrooms: 2, floor: 3, price: 780000, status: 'available', features: ['قريب من الحرم النبوي', 'مصعد', 'مطبخ مجهز'] },
+        { unitNumber: 'AZZ-A03', type: 'apartment', area: 200, bedrooms: 4, bathrooms: 3, floor: 8, price: 1500000, status: 'reserved', features: ['إطلالة على الحرم', 'مصعد', 'جاكوزي'] },
+        { unitNumber: 'AZZ-F01', type: 'floor', area: 450, bedrooms: 0, bathrooms: 3, floor: 1, price: 3800000, status: 'available', features: ['دور تجاري', 'واجهة رئيسية', 'مدخل مستقل'] },
+        { unitNumber: 'AZZ-V01', type: 'villa', area: 350, bedrooms: 5, bathrooms: 5, floor: 0, price: 3900000, status: 'available', features: ['قريب من الحرم', 'حديقة', 'مسبح', 'مصعد'] },
+        { unitNumber: 'AZZ-L01', type: 'land', area: 500, bedrooms: 0, bathrooms: 0, floor: 0, price: 5500000, status: 'available', features: ['أرض تجارية', 'شارعين', 'قريب من الحرم', 'صك إلكتروني'] },
+        { unitNumber: 'AZZ-TH01', type: 'townhouse', area: 230, bedrooms: 3, bathrooms: 3, floor: 0, price: 1900000, status: 'available', features: ['حديقة خاصة', 'تصميم عصري', 'موقف مزدوج'] },
+      ],
+    },
+    // 9. أبها - حي المنسك (سكني)
+    {
+      name: 'مرتفعات المنسك',
+      city: 'أبها',
+      district: 'حي المنسك',
+      type: 'residential',
+      description: 'مشروع سكني في أعالي مدينة أبها بين الغيوم والطبيعة الخلابة مع طقس معتدل طوال العام',
+      totalUnits: 30,
+      status: 'active',
+      images: [],
+      products: [
+        { unitNumber: 'MNS-V01', type: 'villa', area: 400, bedrooms: 5, bathrooms: 5, floor: 0, price: 2200000, status: 'available', features: ['إطلالة جبلية', 'حديقة واسعة', 'مدفأة', 'شرفة بانورامية'] },
+        { unitNumber: 'MNS-V02', type: 'villa', area: 320, bedrooms: 4, bathrooms: 4, floor: 0, price: 1800000, status: 'available', features: ['إطلالة جبلية', 'حديقة', 'مدفأة'] },
+        { unitNumber: 'MNS-TH01', type: 'townhouse', area: 200, bedrooms: 3, bathrooms: 3, floor: 0, price: 1200000, status: 'reserved', features: ['إطلالة طبيعية', 'حديقة خاصة', 'تراس'] },
+        { unitNumber: 'MNS-A01', type: 'apartment', area: 140, bedrooms: 2, bathrooms: 2, floor: 3, price: 550000, status: 'available', features: ['إطلالة جبلية', 'بلكونة', 'مطبخ مجهز'] },
+        { unitNumber: 'MNS-A02', type: 'apartment', area: 170, bedrooms: 3, bathrooms: 2, floor: 5, price: 700000, status: 'available', features: ['إطلالة بانورامية', 'بلكونة واسعة', 'تكييف'] },
+        { unitNumber: 'MNS-L01', type: 'land', area: 700, bedrooms: 0, bathrooms: 0, floor: 0, price: 980000, status: 'available', features: ['أرض سكنية', 'إطلالة جبلية', 'شارع 15م', 'صك إلكتروني'] },
+      ],
+    },
+  ];
+
+  const projects: any[] = [];
+  for (const projectData of projectsData) {
+    const { products: productsData, ...projectInfo } = projectData;
+    const project = await prisma.project.create({
+      data: {
+        tenantId: tenant.id,
+        ...projectInfo,
+      },
+    });
+    projects.push(project);
+
+    // Create products for this project
+    for (const productData of productsData) {
+      await prisma.product.create({
+        data: {
+          tenantId: tenant.id,
+          projectId: project.id,
+          currency: 'SAR',
+          ...productData,
+        },
+      });
+    }
+
+    console.log(`✅ Created project: ${project.name} with ${productsData.length} products`);
+  }
+
+  const totalProducts = projectsData.reduce((sum, p) => sum + p.products.length, 0);
+  console.log(`✅ Created ${projects.length} projects with ${totalProducts} total products`);
+
+  // ============================================
   // LEADS
   // ============================================
 
@@ -779,6 +989,7 @@ async function main() {
   console.log(`   • 2 Pipelines (${mainStages.length + rentalStages.length} stages total)`);
   console.log(`   • ${deals.length} Deals`);
   console.log(`   • ${activitiesData.length} Activities`);
+  console.log(`   • ${projects.length} Projects with ${totalProducts} Products`);
   console.log(`   • ${leadsData.length} Leads`);
   console.log('');
   console.log('📋 Test credentials:');

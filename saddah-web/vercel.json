@@ -8,11 +8,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "${VITE_API_BACKEND_URL}/api/:path*"
+      "destination": "https://saddah-api.vercel.app/api/:path*"
     },
     {
       "source": "/docs/:path*",
-      "destination": "${VITE_API_BACKEND_URL}/docs/:path*"
+      "destination": "https://saddah-api.vercel.app/docs/:path*"
     },
     {
       "source": "/((?!api|docs|assets|favicon|_vercel).*)",

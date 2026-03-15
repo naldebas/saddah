@@ -1,16 +1,16 @@
 /**
  * Vercel Serverless Function Entry Point
- * Wraps NestJS application for serverless deployment
+ * Imports from pre-built dist/ to avoid TypeScript path alias issues
  */
-import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
-import helmet from 'helmet';
-import express from 'express';
-import { AppModule } from '../src/app.module';
+const { NestFactory } = require('@nestjs/core');
+const { ExpressAdapter } = require('@nestjs/platform-express');
+const { ValidationPipe, VersioningType } = require('@nestjs/common');
+const helmet = require('helmet');
+const express = require('express');
+const { AppModule } = require('../dist/app.module');
 
 const server = express();
-let app: any;
+let app;
 
 async function bootstrap() {
   if (!app) {
@@ -56,7 +56,7 @@ async function bootstrap() {
   return server;
 }
 
-export default async (req: any, res: any) => {
+module.exports = async (req, res) => {
   const handler = await bootstrap();
   handler(req, res);
 };

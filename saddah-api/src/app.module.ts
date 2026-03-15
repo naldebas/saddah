@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, DynamicModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bull';
@@ -39,20 +39,25 @@ import { ProductsModule } from './modules/products/products.module';
     }),
 
     // Message Queue (Bull) - supports Upstash Redis (TLS)
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        redis: {
-          host: configService.get('bull.redis.host', 'localhost'),
-          port: configService.get('bull.redis.port', 6379),
-          password: configService.get('bull.redis.password', ''),
-          ...(configService.get('bull.redis.tls') ? { tls: configService.get('bull.redis.tls') } : {}),
-          maxRetriesPerRequest: configService.get('bull.redis.maxRetriesPerRequest', null),
-        },
-        defaultJobOptions: configService.get('bull.defaultJobOptions'),
-      }),
-    }),
+    // Only load if REDIS_URL or REDIS_HOST is configured
+    ...(process.env.REDIS_URL || process.env.REDIS_HOST || process.env.BULL_REDIS_HOST
+      ? [
+          BullModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+              redis: {
+                host: configService.get('bull.redis.host', 'localhost'),
+                port: configService.get('bull.redis.port', 6379),
+                password: configService.get('bull.redis.password', ''),
+                ...(configService.get('bull.redis.tls') ? { tls: configService.get('bull.redis.tls') } : {}),
+                maxRetriesPerRequest: configService.get('bull.redis.maxRetriesPerRequest', null),
+              },
+              defaultJobOptions: configService.get('bull.defaultJobOptions'),
+            }),
+          }),
+        ]
+      : []),
 
     // Event Emitter
     EventEmitterModule.forRoot({
@@ -100,7 +105,10 @@ import { ProductsModule } from './modules/products/products.module';
     ReportsModule,
     ConversationsModule,
     BotpressModule,
-    WhatsAppModule,
+    // WhatsApp module requires Bull/Redis for message queues
+    ...(process.env.REDIS_URL || process.env.REDIS_HOST || process.env.BULL_REDIS_HOST
+      ? [WhatsAppModule]
+      : []),
     ProjectsModule,
     ProductsModule,
   ],

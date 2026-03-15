@@ -1,27 +1,33 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "npx prisma generate && npm run build",
   "installCommand": "npm install",
-  "framework": null,
-  "functions": {
-    "api/index.ts": {
-      "memory": 1024,
-      "maxDuration": 60
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "includeFiles": "dist/**"
+      }
     },
-    "api/cron/quota-reset.ts": {
-      "memory": 256,
-      "maxDuration": 30
+    {
+      "src": "api/cron/quota-reset.ts",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/index.ts"
+      "src": "/api/cron/quota-reset",
+      "dest": "/api/cron/quota-reset.ts"
     },
     {
-      "source": "/docs/:path*",
-      "destination": "/api/index.ts"
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/docs/(.*)",
+      "dest": "/api/index.js"
     }
   ],
   "crons": [
